@@ -10,28 +10,30 @@ function Write-ESAFJson {
     } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
 }
 
-function Set-ESAFStoragePermissions {
-    param([string]$Path)
-    # Only SYSTEM and local Administrators can read/write assurance evidence.
-    $acl = New-Object Security.AccessControl.DirectorySecurity
+function New-ESAFStorageAcl {
+    param([switch]$File)
+    $acl = if ($File) { New-Object Security.AccessControl.FileSecurity } else { New-Object Security.AccessControl.DirectorySecurity }
     $acl.SetAccessRuleProtection($true,$false)
+    # A previous standard-user owner could otherwise rewrite the DACL.
+    $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))
     foreach ($sid in @('S-1-5-18','S-1-5-32-544')) {
         $identity = New-Object Security.Principal.SecurityIdentifier($sid)
-        $rule = New-Object Security.AccessControl.FileSystemAccessRule($identity,'FullControl','ContainerInherit,ObjectInherit','None','Allow')
+        $rule = if ($File) { New-Object Security.AccessControl.FileSystemAccessRule($identity,'FullControl','Allow') }
+        else { New-Object Security.AccessControl.FileSystemAccessRule($identity,'FullControl','ContainerInherit,ObjectInherit','None','Allow') }
         $acl.AddAccessRule($rule)
     }
+    $acl
+}
+
+function Set-ESAFStoragePermissions {
+    param([string]$Path)
+    $acl=New-ESAFStorageAcl
     Set-Acl -LiteralPath $Path -AclObject $acl -ErrorAction Stop
     # Remove preexisting explicit child grants as well as inherited ones.
     foreach ($item in Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction Stop) {
         if ($item.PSIsContainer) { Set-Acl -LiteralPath $item.FullName -AclObject $acl -ErrorAction Stop }
         else {
-            $fileAcl = New-Object Security.AccessControl.FileSecurity
-            $fileAcl.SetAccessRuleProtection($true,$false)
-            foreach ($sid in @('S-1-5-18','S-1-5-32-544')) {
-                $identity = New-Object Security.Principal.SecurityIdentifier($sid)
-                $rule = New-Object Security.AccessControl.FileSystemAccessRule($identity,'FullControl','Allow')
-                $fileAcl.AddAccessRule($rule)
-            }
+            $fileAcl = New-ESAFStorageAcl -File
             Set-Acl -LiteralPath $item.FullName -AclObject $fileAcl -ErrorAction Stop
         }
     }

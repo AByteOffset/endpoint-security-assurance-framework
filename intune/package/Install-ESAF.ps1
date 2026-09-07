@@ -6,16 +6,13 @@ $ErrorActionPreference='Stop'
 try {
     if (-not [Environment]::Is64BitProcess) { throw '64-bit PowerShell required.' }
     $destination = Join-Path $env:ProgramFiles 'ESAF'
-    Import-Module (Join-Path $SourceRoot 'src/ESAF.psd1') -Force
-    $module = Get-Module ESAF
-    & $module { param($path) Assert-ESAFStoragePath $path } $destination
-    $null = New-Item -ItemType Directory -Path $destination -Force
-    & $module { param($path) Set-ESAFStoragePermissions $path } $destination
-    foreach ($folder in @('src','controls','baselines','tools')) {
-        Copy-Item -LiteralPath (Join-Path $SourceRoot $folder) -Destination $destination -Recurse -Force
-    }
-    Import-Module (Join-Path $destination 'src/ESAF.psd1') -Force
-    $r = Invoke-ESAFValidation
+    Remove-Module ESAF -Force -ErrorAction SilentlyContinue
+    $module = Import-Module (Join-Path $SourceRoot 'src/ESAF.psd1') -Force -PassThru
+    & $module { param($source,$target) Copy-ESAFPayload $source $target } $SourceRoot $destination
+    Remove-Module ESAF -Force
+    $installed = Import-Module (Join-Path $destination 'src/ESAF.psd1') -Force -PassThru
+    if ([IO.Path]::GetFullPath($installed.ModuleBase) -ne [IO.Path]::GetFullPath((Join-Path $destination 'src'))) { throw 'Unexpected installed module location.' }
+    $r = & $installed { Invoke-ESAFValidation }
     Write-Output "ESAF executed. Run=$($r.runId); security verdict=$($r.status)"
     exit 0
 } catch { Write-Output 'ESAF installation or report publication failed.'; exit 1 }

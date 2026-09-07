@@ -111,9 +111,9 @@ Describe 'Read-only evidence providers' {
         }
         It 'normalizes onboarding registry values' {
             Mock Test-Path { $true }
-            Mock Get-ItemPropertyValue { 1 }
+            Mock Get-ItemProperty { [pscustomobject]@{OnboardingState=1} }
             (Get-ESAFEvidence MDEOnboardingState).observed | Should -Be Onboarded
-            Mock Get-ItemPropertyValue { 0 }
+            Mock Get-ItemProperty { [pscustomobject]@{OnboardingState=0} }
             (Get-ESAFEvidence MDEOnboardingState).observed | Should -Be NotOnboarded
             Mock Test-Path { $false }
             (Get-ESAFEvidence MDEOnboardingState).observed | Should -Be Unknown
@@ -228,11 +228,25 @@ Describe 'Intune lightweight compliance' {
         ($text | ConvertFrom-Json).ESAFStatus | Should -Be PASS
         ($text | ConvertFrom-Json).NetworkAssurance | Should -Be PASS
     }
-    It 'fails closed for missing malformed stale incomplete or inconsistent results' {
+    It 'reports age separately without converting a recorded verdict to PENDING' {
+        $script:fixture.completedAt=[DateTime]::UtcNow.AddDays(-365).ToString('o')
+        $script:fixture | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile
+        $r=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json
+        $r.ESAFStatus | Should -Be PASS
+        $r.CertificationFreshness | Should -Be Stale
+    }
+    It 'never promotes pending security certification to compliance PASS' {
+        $script:fixture.status='PENDING'; $script:fixture.controls[0].status='PENDING'
+        Mock Get-ItemProperty { [pscustomobject]@{LastRunId='ESAF-20260907-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';Status='PENDING';EngineVersion='0.1.0';BaselineVersion='1.0.0'} }
+        $script:fixture | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile
+        $r=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json
+        $r.ESAFStatus | Should -Be PENDING
+        $r.MDEAssurance | Should -Not -Be PASS
+    }
+    It 'fails closed for missing malformed incomplete or inconsistent results' {
         (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
-        foreach ($mode in @('malformed','stale','incomplete','mismatch')) {
+        foreach ($mode in @('malformed','incomplete','mismatch')) {
             $f=$script:fixture | ConvertTo-Json -Depth 10 | ConvertFrom-Json
-            if ($mode -eq 'stale') { $f.completedAt=[DateTime]::UtcNow.AddDays(-8).ToString('o') }
             if ($mode -eq 'incomplete') { $f.controls=@() }
             if ($mode -eq 'mismatch') { $f.runId='different' }
             $f | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile

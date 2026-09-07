@@ -18,6 +18,14 @@ Describe 'Version-aware Intune detection' {
         $LASTEXITCODE | Should -Be 0
         $text | Should -Match 'certification versions current'
     }
+    It 'detects completed PENDING execution without treating it as security PASS' {
+        $script:data.status='PENDING'
+        $script:data | ConvertTo-Json -Depth 10 | Set-Content $script:path
+        Mock Get-ItemProperty { [pscustomobject]@{LastRunId='ESAF-20260907-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';Status='PENDING';EngineVersion='0.1.0';BaselineVersion='1.0.0'} }
+        $null=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path
+        $LASTEXITCODE | Should -Be 0
+        (Get-Content $script:path -Raw | ConvertFrom-Json).status | Should -Be PENDING
+    }
     It 'requires recertification for a new baseline or engine' {
         $text=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path -RequiredBaselineVersion '1.1.0'
         $LASTEXITCODE | Should -Be 1
@@ -25,11 +33,11 @@ Describe 'Version-aware Intune detection' {
         $null=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path -RequiredEngineVersion '0.2.0'
         $LASTEXITCODE | Should -Be 1
     }
-    It 'rejects stale and incomplete certificates' {
+    It 'accepts old certificates but rejects incomplete certificates' {
         $script:data.completedAt=[DateTime]::UtcNow.AddDays(-8).ToString('o')
         $script:data | ConvertTo-Json -Depth 10 | Set-Content $script:path
         $null=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path
-        $LASTEXITCODE | Should -Be 1
+        $LASTEXITCODE | Should -Be 0
         $script:data.completedAt=[DateTime]::UtcNow.ToString('o'); $script:data.controls=@()
         $script:data | ConvertTo-Json -Depth 10 | Set-Content $script:path
         $null=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path
@@ -47,12 +55,19 @@ Describe 'Installer execution contract' {
         $body | Set-Content $fixture
         $harness=Join-Path $TestDrive 'harness.ps1'
         @'
-param([string]$Fixture,[switch]$FailExecution)
-function Import-Module {}
-function Get-Module { New-Module -ScriptBlock { function Assert-ESAFStoragePath {}; function Set-ESAFStoragePermissions {} } }
-function New-Item {}
-function Copy-Item {}
-function Invoke-ESAFValidation { if ($FailExecution) { throw 'Simulated failure' }; [pscustomobject]@{runId='test';status='FAIL'} }
+param([string]$Fixture,[switch]$FailExecution,[string]$Verdict='FAIL')
+function Remove-Module {}
+function Import-Module {
+    $m=New-Module -ArgumentList $FailExecution,$Verdict -ScriptBlock {
+        param($failure,$verdict)
+        $script:failure=$failure
+        $script:verdict=$verdict
+        function Copy-ESAFPayload {}
+        function Invoke-ESAFValidation { if ($script:failure) { throw 'Simulated failure' }; [pscustomobject]@{runId='test';status=$script:verdict} }
+    }
+    $m | Add-Member -MemberType NoteProperty -Name ModuleBase -Value (Join-Path $env:ProgramFiles 'ESAF/src') -Force
+    $m
+}
 & $Fixture -SourceRoot $PSScriptRoot
 exit $LASTEXITCODE
 '@ | Set-Content $harness
@@ -60,6 +75,9 @@ exit $LASTEXITCODE
         $text=& $hostPath -NoProfile -ExecutionPolicy Bypass -File $harness -Fixture $fixture
         $LASTEXITCODE | Should -Be 0
         $text | Should -Match 'security verdict=FAIL'
+        $text=& $hostPath -NoProfile -ExecutionPolicy Bypass -File $harness -Fixture $fixture -Verdict PENDING
+        $LASTEXITCODE | Should -Be 0
+        $text | Should -Match 'security verdict=PENDING'
         $null=& $hostPath -NoProfile -ExecutionPolicy Bypass -File $harness -Fixture $fixture -FailExecution
         $LASTEXITCODE | Should -Be 1
     }

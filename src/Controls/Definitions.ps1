@@ -18,20 +18,17 @@ function Get-ESAFBaseline {
 
 function Get-ESAFControls {
     param($Baseline, [string]$ControlsPath)
-    $providers = @{
-        'ESAF-MDE-001' = @('mde','MDEOnboardingState','Onboarded')
-        'ESAF-MDE-002' = @('mde','MDESensorService','Running')
-        'ESAF-AV-001' = @('defender','DefenderAntivirus','Active')
-        'ESAF-AV-002' = @('defender','RealTimeProtection','Enabled')
-        'ESAF-NET-001' = @('network','NetworkProtection','Block')
-    }
+    $providers = Get-ESAFProviderRegistry
+    $categories = @{ MDE='mde'; AV='defender'; NET='network' }
     foreach ($id in $Baseline.controls) {
-        if (-not $providers.ContainsKey($id)) { throw 'Control ID is not implemented.' }
-        $binding = $providers[$id]
-        $c = Read-ESAFJson (Join-Path $ControlsPath ($binding[0] + '/' + $id + '.json'))
+        if ($id -cnotmatch '^ESAF-(MDE|AV|NET)-\d{3}$') { throw 'Invalid control ID.' }
+        $category = $categories[$Matches[1]]
+        $c = Read-ESAFJson (Join-Path $ControlsPath ($category + '/' + $id + '.json'))
         Assert-ESAFFields $c @('id','title','description','category','severity','profiles','required','expected','evidenceProvider','functionalTest','remediationGuidance','references')
         foreach ($field in @('id','title','description','category','severity','evidenceProvider','remediationGuidance')) { Assert-ESAFString $c.$field }
-        if ($c.id -cne $id -or $c.category -cne $binding[0] -or $c.evidenceProvider -cne $binding[1]) { throw 'Invalid control/provider binding.' }
+        if ($c.id -cne $id -or $c.category -cne $category -or @($providers.Keys) -cnotcontains $c.evidenceProvider) { throw 'Invalid control/provider binding.' }
+        $binding = $providers[$c.evidenceProvider]
+        if ($c.category -cne $binding.Category) { throw 'Invalid provider category.' }
         if ($c.severity -cnotin @('critical','high','medium','informational') -or $c.required -isnot [bool]) { throw 'Invalid severity or required flag.' }
         foreach ($field in @('profiles','references')) {
             if ($c.$field -isnot [array] -or $c.$field.Count -eq 0) { throw 'Expected nonempty array.' }
@@ -39,7 +36,7 @@ function Get-ESAFControls {
         }
         Assert-ESAFFields $c.expected @('state')
         Assert-ESAFString $c.expected.state
-        if ($c.expected.state -cne $binding[2]) { throw 'Unsupported expected state for foundation control.' }
+        if ($binding.ExpectedStates -cnotcontains $c.expected.state) { throw 'Unsupported expected state for provider.' }
         Assert-ESAFFields $c.functionalTest @('supported')
         if ($c.functionalTest.supported -isnot [bool] -or $c.functionalTest.supported) { throw 'Functional execution is not implemented.' }
         $c

@@ -4,8 +4,7 @@ param(
     [string]$RequiredEngineVersion='0.1.0',
     [string]$RequiredBaselineVersion='1.0.0',
     [string]$InstallPath=(Join-Path $env:ProgramFiles 'ESAF'),
-    [string]$ResultPath=(Join-Path $env:ProgramData 'ESAF/result.json'),
-    [int]$MaximumAgeHours=168
+    [string]$ResultPath=(Join-Path $env:ProgramData 'ESAF/result.json')
 )
 $ErrorActionPreference='Stop'
 try {
@@ -23,7 +22,7 @@ try {
         if ($control.Count -ne 1 -or $control[0].status -cnotin @('PASS','FAIL','REVIEW','PENDING','NOT_APPLICABLE','ERROR')) { exit 1 }
     }
     $date = [DateTimeOffset]::Parse($r.completedAt)
-    if ($MaximumAgeHours -lt 1 -or $date -lt [DateTimeOffset]::UtcNow.AddHours(-$MaximumAgeHours) -or $date -gt [DateTimeOffset]::UtcNow.AddMinutes(5)) { exit 1 }
+    if ($date -gt [DateTimeOffset]::UtcNow.AddMinutes(5)) { exit 1 }
     Write-Output 'ESAF installed and certification versions current.'
     exit 0
 } catch { exit 1 }

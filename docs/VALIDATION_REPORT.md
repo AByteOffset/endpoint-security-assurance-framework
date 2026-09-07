@@ -1,13 +1,16 @@
-# Foundation validation report
+# Foundation pre-live-lab hardening validation report
 
 Validated on 2026-09-07 using 64-bit Windows PowerShell 5.1 and Pester 5.6.1.
 
-- 28 Pester tests passed; zero failures, skips or inconclusive tests.
-- All 15 PowerShell source/manifest files parsed; all 7 tracked JSON files parsed. The shipped baseline and five controls passed semantic validation, and the module imported successfully.
+- 43 Pester tests passed; zero failures, skips or inconclusive tests (previous foundation: 28).
+- All 18 PowerShell source/manifest files parsed; all 7 tracked JSON files parsed. The shipped baseline and five controls passed semantic validation, and the module imported successfully.
 - Mocked full validation generated matching result/evidence Run IDs, history across successive runs, operational log and registry-summary calls. Repeat publication exercised atomic JSON replacement on .NET Framework.
-- Compliance discovery emitted a single compressed JSON object; malformed, missing, stale, incomplete and inconsistent fixtures failed closed.
-- Version-aware detection rejected newer required engine/baseline versions and stale/incomplete results. A current completed security FAIL remained successfully detected.
-- An isolated child-process installer fixture replaced privileged boundaries and verified exit 0 for completed security FAIL and exit 1 for execution exceptions.
+- Compliance discovery emitted a single compressed JSON object; malformed, missing, incomplete and inconsistent fixtures failed closed. Stale age is reported separately as CertificationFreshness; PENDING remains non-PASS.
+- Version-aware detection rejects newer required engine/baseline versions and incomplete results. Old valid certificates remain detected with no age-triggered reinstallation. Completed security FAIL/PENDING remains successfully detected.
+- An isolated child-process installer fixture replaced privileged boundaries and verified exit 0 for completed security FAIL/PENDING and exit 1 for execution exceptions. Real temporary payload copies verified updates, obsolete-code removal, no nested duplicates and separate history preservation.
+- Provider registry tests verify approved dispatch, malicious/unknown provider rejection, new control IDs with existing providers, valid alternative expected values and invalid expected-value rejection. Windows normalization handles named enums, real Booleans, missing properties and service transitions while retaining raw evidence.
+- Real Windows ACL objects verify protected SYSTEM/Administrators FullControl, Administrators ownership and inheritance. Set-Acl remains mocked; actual enforcement requires the manual standard-user denial check.
+- A separate PowerShell process copied and reloaded the real module from a temporary installed path, confirming installed RepositoryRoot and baseline/provider loading rather than source-tree reuse.
 - Git diff whitespace validation passed. Repository source scans found no embedded credentials, tokens, private keys, tenant IDs, personal email addresses or user-specific absolute paths. Review found no Defender/ASR/firewall policy mutations, exclusions or data-driven command execution. The Invoke-Expression string in a rejection test is inert malicious input, not executable code.
 
 The initial local test process used a process-only execution-policy override because the developer machine blocks scripts by default. It did not change machine execution policy. Pester used temporary HKCU test registry space; actual ESAF security collection, HKLM summary writes and deployment ACL changes were mocked. Downloaded test dependencies and development-only GitHub tooling are ignored and excluded from the endpoint payload and Git commits.

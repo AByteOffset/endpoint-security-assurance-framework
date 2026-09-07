@@ -7,9 +7,11 @@ Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPubl
 .\tools\Test-ESAF.ps1
 ```
 
-Tests mock Windows security providers and privileged write boundaries. Coverage includes baseline loading/rejection, provider binding, applicability, normalized modes, verdict precedence, error sanitization/continuation, random Run IDs, result/evidence JSON, history, operational log, registry summary, partial publication and lightweight compliance fail-closed behavior. TestDrive outputs are automatically cleaned by Pester. No tests require a live Defender/MDE endpoint.
+Tests mock Windows security providers and privileged write boundaries. Coverage includes provider registry extensibility and command rejection, Boolean/enum normalization, ACL/owner construction, repeated payload copying and obsolete-file removal, baseline validation, applicability, verdicts, errors, Run IDs, history, registry, separate freshness and PENDING semantics. Copy tests use actual temporary filesystem operations; ACL tests build real Windows descriptors but mock Set-Acl. TestDrive outputs are cleaned by Pester. No tests require a live Defender/MDE endpoint.
 
-On an approved Windows 11 MDE lab machine, elevate 64-bit Windows PowerShell and run:
+For the FIRST live test follow [LIVE_LAB_CHECKLIST.md](LIVE_LAB_CHECKLIST.md), which captures raw Windows/MDE state before ESAF, compares raw/normalized/expected/verdict and verifies actual ACLs. It runs manually from the feature branch before installation or packaging. Live validation has not been performed during development.
+
+For later assessment and the separate installer lifecycle milestone, elevate 64-bit Windows PowerShell and run:
 
 ```powershell
 Import-Module .\src\ESAF.psd1 -Force
