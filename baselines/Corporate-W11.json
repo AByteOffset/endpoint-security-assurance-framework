@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Corporate-W11",
+  "version": "1.0.0",
+  "engineCompatibility": ">= 0.1.0",
+  "platform": "Windows",
+  "minimumBuild": 22000,
+  "controls": [
+    "ESAF-MDE-001",
+    "ESAF-MDE-002",
+    "ESAF-AV-001",
+    "ESAF-AV-002",
+    "ESAF-NET-001"
+  ]
+}

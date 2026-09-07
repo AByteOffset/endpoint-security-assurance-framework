@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-MDE-001",
+  "title": "MDE Onboarding State",
+  "description": "Local onboarding registry indicator; does not establish cloud telemetry health.",
+  "category": "mde",
+  "severity": "critical",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Onboarded"
+  },
+  "evidenceProvider": "MDEOnboardingState",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the assigned Intune policy and Microsoft troubleshooting guidance. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding"
+  ]
+}

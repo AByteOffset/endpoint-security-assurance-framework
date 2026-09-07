@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-AV-001",
+  "title": "Microsoft Defender Antivirus Active",
+  "description": "Require Normal mode, antivirus enabled and antimalware service enabled.",
+  "category": "defender",
+  "severity": "critical",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Active"
+  },
+  "evidenceProvider": "DefenderAntivirus",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the assigned Intune policy and Microsoft troubleshooting guidance. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus"
+  ]
+}

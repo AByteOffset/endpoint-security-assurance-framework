@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-NET-001",
+  "title": "Network Protection Effective State",
+  "description": "Read Defender effective preference; blocking behavior is not functionally tested.",
+  "category": "network",
+  "severity": "high",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Block"
+  },
+  "evidenceProvider": "NetworkProtection",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the assigned Intune policy and Microsoft troubleshooting guidance. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/defender-endpoint/enable-network-protection"
+  ]
+}
