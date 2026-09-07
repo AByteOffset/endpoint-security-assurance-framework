@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-AV-002",
+  "title": "Real-Time Protection Enabled",
+  "description": "Read operational real-time protection status.",
+  "category": "defender",
+  "severity": "critical",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Enabled"
+  },
+  "evidenceProvider": "RealTimeProtection",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the assigned Intune policy and Microsoft troubleshooting guidance. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus"
+  ]
+}

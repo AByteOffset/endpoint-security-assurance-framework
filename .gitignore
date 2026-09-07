@@ -1,0 +1,5 @@
+artifacts/
+.tools/
+*.intunewin
+TestResults.xml
+*.tmp

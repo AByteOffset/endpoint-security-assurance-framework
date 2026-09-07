@@ -1,0 +1,28 @@
+# Controls, baselines and verdicts
+
+Schema version 1.0 is enforced by explicit PowerShell 5.1 validators, not PowerShell 7-only Test-Json. Baseline fields are schemaVersion, name, version, engineCompatibility, platform, minimumBuild and a nonempty unique controls array. Versions use three numeric components. The only engine expression supported is `>= x.y.z`; the current baseline requires `>= 0.1.0`. Unknown fields, malformed JSON, duplicate IDs, unsupported providers, traversal IDs and missing files are rejected before collection.
+
+Controls require id, title, description, category, severity, profiles, required (Boolean), expected.state, evidenceProvider, functionalTest.supported (false in foundation), remediationGuidance and references. ID prefixes select category directories; there is no individual-control-ID dispatch table. Get-ESAFProviderRegistry maps approved provider names to internal functions, categories and allowed normalized expected-state domains. JSON selects an exact provider key and supplies expected.state. A new ESAF-NET-099 control can reuse NetworkProtection and expect Audit without changing dispatch code. Unknown fields, executable-looking provider names, invalid categories and expected states outside the provider domain are rejected. Unknown/Error cannot be desired states. Corporate-W11 retains its original five required protective expectations. Less restrictive expectations in other baselines require explicit governance review; ESAF does not alter endpoint policy.
+
+| Provider | Evidence | Normalized observations |
+| --- | --- | --- |
+| MDEOnboardingState | HKLM Windows Advanced Threat Protection/Status OnboardingState | 1 Onboarded; 0 NotOnboarded; absent/other Unknown |
+| MDESensorService | Win32_Service filtered to Sense | Running, Stopped, Paused, Missing; transitional/other states Unknown; raw State and StartMode |
+| DefenderAntivirus | Get-MpComputerStatus AMRunningMode, AMServiceEnabled, AntivirusEnabled | Normal plus both enabled: Active; Passive/EDR Block: Passive; disabled flags: Disabled; otherwise Unknown |
+| RealTimeProtection | Get-MpComputerStatus RealTimeProtectionEnabled | Enabled, Disabled, Unknown |
+| NetworkProtection | Get-MpPreference EnableNetworkProtection | 1 / Enabled -> Block; 2 / AuditMode -> Audit; 0 / Disabled -> Disabled; numeric strings accepted; other Unknown |
+
+Missing onboarding keys or OnboardingState properties return Unknown; access/collection failures return ERROR. Normalization functions preserve original Windows property names/values in evidence.raw and place the canonical value in evidence.observed and result.controls.observed. Boolean properties must actually be Boolean; missing/string values do not become True through coercion. Antivirus recognizes Normal, Passive, Passive Mode, SxS Passive Mode and EDR Block Mode explicitly; only Normal plus both true operational flags is Active. Unknown mode text is not matched by a broad substring. The reported Network Protection preference does not prove traffic blocking, and onboarding does not prove cloud receipt. Functional status is explicitly NOT_IMPLEMENTED.
+
+Control comparisons are exact against normalized canonical values. Inapplicable controls are NOT_APPLICABLE and are not collected. Unknown is REVIEW, except explicit caller `-Provisioning` converts Unknown to PENDING. This switch makes no claim to detect provisioning automatically and does not soften mismatches or errors. There is no indefinite automatic retry; orchestration decides when to recertify.
+
+Overall precedence:
+
+1. Required Critical/High FAIL or ERROR -> FAIL.
+2. Required PENDING -> PENDING.
+3. Other failures/errors/warnings, optional pending, required NOT_APPLICABLE, or empty results -> REVIEW.
+4. Otherwise -> PASS (all required controls pass).
+
+Critical/high counters include required collection errors; the failed counter counts FAIL, while errors has its own counter. Medium/informational required failures and optional failures result in REVIEW. No percentage score can override a failure; foundation does not calculate one.
+
+References: [MDE onboarding troubleshooting](https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding), [Defender status](https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus), [Defender running modes](https://learn.microsoft.com/en-us/defender-endpoint/edr-block-mode-faqs), [Network Protection configuration](https://learn.microsoft.com/en-us/defender-endpoint/enable-network-protection). These sources inform normalization; live property comparison is still required and has not been performed.

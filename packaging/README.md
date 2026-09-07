@@ -1,0 +1,3 @@
+# Win32 packaging
+
+Use Microsoft's Win32 Content Prep Tool on a reviewed release checkout. Stage src/, controls/, baselines/, tools/ and intune/package/ preserving paths; select intune/package/Install-ESAF.ps1 as setup. Exclude repository metadata, development dependencies and test artifacts. Keep the resulting .intunewin outside Git. Upload detection and compliance scripts separately, with the release's exact version requirements. Sign PowerShell files through the organization's release process before packaging. The tool is not redistributed and no package has been tenant-deployed by this repository.

@@ -1,0 +1,88 @@
+{
+  "Rules": [
+    {
+      "SettingName": "ESAFStatus",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "PASS",
+      "MoreInfoUrl": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "ESAF assurance requires attention",
+          "Description": "Contact endpoint support to review ESAF results and required certification versions."
+        }
+      ]
+    },
+    {
+      "SettingName": "MDEAssurance",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "PASS",
+      "MoreInfoUrl": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "ESAF assurance requires attention",
+          "Description": "Contact endpoint support to review ESAF results and required certification versions."
+        }
+      ]
+    },
+    {
+      "SettingName": "DefenderAssurance",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "PASS",
+      "MoreInfoUrl": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "ESAF assurance requires attention",
+          "Description": "Contact endpoint support to review ESAF results and required certification versions."
+        }
+      ]
+    },
+    {
+      "SettingName": "NetworkAssurance",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "PASS",
+      "MoreInfoUrl": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "ESAF assurance requires attention",
+          "Description": "Contact endpoint support to review ESAF results and required certification versions."
+        }
+      ]
+    },
+    {
+      "SettingName": "BaselineVersion",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "1.0.0",
+      "MoreInfoUrl": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "ESAF assurance requires attention",
+          "Description": "Contact endpoint support to review ESAF results and required certification versions."
+        }
+      ]
+    },
+    {
+      "SettingName": "EngineVersion",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "0.1.0",
+      "MoreInfoUrl": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "ESAF assurance requires attention",
+          "Description": "Contact endpoint support to review ESAF results and required certification versions."
+        }
+      ]
+    }
+  ]
+}

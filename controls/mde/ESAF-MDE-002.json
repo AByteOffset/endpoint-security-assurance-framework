@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-MDE-002",
+  "title": "MDE Sensor Service",
+  "description": "Read SENSE service presence, state and startup mode.",
+  "category": "mde",
+  "severity": "critical",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Running"
+  },
+  "evidenceProvider": "MDESensorService",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the assigned Intune policy and Microsoft troubleshooting guidance. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-onboarding"
+  ]
+}
