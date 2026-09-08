@@ -9,7 +9,8 @@ Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPubl
 
 Tests mock Windows security providers and privileged write boundaries. Coverage includes provider registry extensibility and command rejection, Boolean/enum normalization, ACL/owner construction, repeated payload copying and obsolete-file removal, baseline validation, applicability, verdicts, errors, Run IDs, history, registry, separate freshness and PENDING semantics. Copy tests use actual temporary filesystem operations; ACL tests build real Windows descriptors but mock Set-Acl. TestDrive outputs are cleaned by Pester. No tests require a live Defender/MDE endpoint.
 
-For the FIRST live test follow [LIVE_LAB_CHECKLIST.md](LIVE_LAB_CHECKLIST.md), which captures raw Windows/MDE state before ESAF, compares raw/normalized/expected/verdict and verifies actual ACLs. It runs manually from the feature branch before installation or packaging. Live validation has not been performed during development.
+The historical first-live-test checklist is [LIVE_LAB_CHECKLIST.md](LIVE_LAB_CHECKLIST.md), covering raw Windows/MDE state and ACL comparisons. It is retained as a reference, not a requirement to redo the verified foundation.
+The owner subsequently reported successful foundation live validation. For Milestone 2 use INTUNE_PILOT_GUIDE.md instead; real Intune SYSTEM/IME execution and portal results remain pending. Pilot.Tests.ps1 extends the retained foundation tests with staging/hash validation, actual temporary-file rollback, mutex contention, atomic-publication failure handling, strict result contracts and read-only tooling. All security state and machine deletion/registry boundaries are mocked or redirected into TestDrive.
 
 For later assessment and the separate installer lifecycle milestone, elevate 64-bit Windows PowerShell and run:
 
@@ -23,7 +24,8 @@ Get-Content C:\ProgramData\ESAF\evidence.json -Raw | ConvertFrom-Json
 Get-ItemProperty HKLM:\SOFTWARE\ESAF
 .\intune\compliance\Compliance-Discovery.ps1
 # Test the installation lifecycle in separate processes (scripts use exit):
-powershell.exe -NoProfile -File .\intune\package\Install-ESAF.ps1
+$build=.\packaging\Build-ESAFPackage.ps1 -OutputRoot C:\ESAFBuild
+powershell.exe -NoProfile -File C:\ESAFBuild\ESAF-Package\Install-ESAF.ps1
 $LASTEXITCODE
 powershell.exe -NoProfile -File .\intune\package\Detect-ESAF.ps1
 $LASTEXITCODE

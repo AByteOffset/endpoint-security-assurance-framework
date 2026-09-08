@@ -1,20 +1,46 @@
-# Foundation pre-live-lab hardening validation report
+# Milestone 2 validation report
 
-Validated on 2026-09-07 using 64-bit Windows PowerShell 5.1 and Pester 5.6.1.
+## Automated validation
 
-- 43 Pester tests passed; zero failures, skips or inconclusive tests (previous foundation: 28).
-- All 18 PowerShell source/manifest files parsed; all 7 tracked JSON files parsed. The shipped baseline and five controls passed semantic validation, and the module imported successfully.
-- Mocked full validation generated matching result/evidence Run IDs, history across successive runs, operational log and registry-summary calls. Repeat publication exercised atomic JSON replacement on .NET Framework.
-- Compliance discovery emitted a single compressed JSON object; malformed, missing, incomplete and inconsistent fixtures failed closed. Stale age is reported separately as CertificationFreshness; PENDING remains non-PASS.
-- Version-aware detection rejects newer required engine/baseline versions and incomplete results. Old valid certificates remain detected with no age-triggered reinstallation. Completed security FAIL/PENDING remains successfully detected.
-- An isolated child-process installer fixture replaced privileged boundaries and verified exit 0 for completed security FAIL/PENDING and exit 1 for execution exceptions. Real temporary payload copies verified updates, obsolete-code removal, no nested duplicates and separate history preservation.
-- Provider registry tests verify approved dispatch, malicious/unknown provider rejection, new control IDs with existing providers, valid alternative expected values and invalid expected-value rejection. Windows normalization handles named enums, real Booleans, missing properties and service transitions while retaining raw evidence.
-- Real Windows ACL objects verify protected SYSTEM/Administrators FullControl, Administrators ownership and inheritance. Set-Acl remains mocked; actual enforcement requires the manual standard-user denial check.
-- A separate PowerShell process copied and reloaded the real module from a temporary installed path, confirming installed RepositoryRoot and baseline/provider loading rather than source-tree reuse.
-- Git diff whitespace validation passed. Repository source scans found no embedded credentials, tokens, private keys, tenant IDs, personal email addresses or user-specific absolute paths. Review found no Defender/ASR/firewall policy mutations, exclusions or data-driven command execution. The Invoke-Expression string in a rejection test is inert malicious input, not executable code.
+The complete Windows PowerShell 5.1 Pester suite passes 75 tests, with 0 failures, skips or inconclusive results. Production security scanning passes and the tracked-file secret scan finds no matches. These are development checks, distinct from the owner-reported live Intune evidence below. CI runs the same suite and security scan; consult PR #2 checks for each remote run result.
 
-The initial local test process used a process-only execution-policy override because the developer machine blocks scripts by default. It did not change machine execution policy. Pester used temporary HKCU test registry space; actual ESAF security collection, HKLM summary writes and deployment ACL changes were mocked. Downloaded test dependencies and development-only GitHub tooling are ignored and excluded from the endpoint payload and Git commits.
+Coverage includes baseline/control validation, evidence normalization, verdict logic, result/registry consistency, protected ACL intent, deterministic staging and SHA-256 integrity rejection, installation success/failure separation, module reload, execution-lock contention/release, atomic publication, detection and compliance semantics, isolated uninstall, sanitized diagnostics, and package-root resolution. Privileged filesystem/registry boundaries are substituted in relevant tests. Mocked tests do not establish actual SYSTEM deployment or portal compliance.
 
-The repository is private, default branch main, with implementation on feature/esaf-foundation and pull request 1 left open for review. GitHub refused main branch protection with HTTP 403: the account must upgrade to GitHub Pro or make the repository public. Privacy was preserved, so required PR/check enforcement and force-push protection could not be enabled. CI results are available on the PR's Checks tab.
+## Successful live one-device Intune pilot — 2026-09-08
 
-Not claimed: real MDE/Defender integration, Intune tenant deployment, .intunewin packaging, signing, live ACL enforcement, active functional blocking, cloud telemetry or Deep tests. Those require the approved lab and release process described in TESTING.md. Local administrators remain able to forge local evidence; this is not cryptographic attestation. Collection timeouts and automatic history/log retention remain documented future work.
+Source: final live validation evidence supplied by the project owner from the Windows 11 MDE lab VM. The development agent did not independently operate the tenant or inspect the VM. This records a completed pilot, separate from the automated suite.
+
+| Evidence | Live result |
+| --- | --- |
+| Device | DESKTOP-GFRP15O |
+| Win32 app | ESAF - Endpoint Security Assurance Framework 0.1.1 - Pilot |
+| Intune app state | Installed |
+| Installation directory | C:\Program Files\ESAF exists |
+| Deployment context | Intune machine/SYSTEM, native 64-bit Windows PowerShell |
+| Engine | 0.1.1 |
+| Baseline | Corporate-W11 1.0.0 |
+| Final Run ID | ESAF-20260908-4180E576390BD031F3893333FE968A80 |
+| Overall ESAF verdict | PASS |
+| Controls | 5 passed; 0 failed, review, pending or errors |
+| Installation verifier | Engine, Baseline, ResultIntegrity, RegistryConsistency, StorageAcl and Certification all PASS |
+| Program Files ACL | C:\Program Files\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
+| ProgramData ACL | C:\ProgramData\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
+| Intune compliance policy | ESAF Endpoint Security Compliance - Pilot |
+| Final portal custom setting | ESAFStatus = Compliant |
+
+Local Custom Compliance discovery returned ESAFStatus PASS, MDEAssurance PASS, DefenderAssurance PASS, NetworkAssurance PASS, BaselineVersion 1.0.0, EngineVersion 0.1.1 and CertificationFreshness Fresh. The portal setting is recorded separately: the local discovery result alone was not used to claim Intune compliance.
+
+## Pilot defects fixed and retained hardening
+
+1. The unsigned installer initially exited 1 before creating Program Files/ESAF. The earlier detailed evidence reported persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The launch needed process-only `-ExecutionPolicy Bypass`; the install command and native uninstall wrapper now include it. No Set-ExecutionPolicy call, persistent LocalMachine/CurrentUser change, execution-policy registry value or GPO weakening was added. Production should prefer signed release scripts and normal organizational script-control policy.
+2. After that correction, package version 2 still failed under SYSTEM. Manifest validation, module import, paths, payload directories, temporary payload copy/ACLs and execution-lock acquisition passed isolated live checks. Protected diagnostics identified `package support load`, `System.Management.Automation.ParameterBindingValidationException`, line 77, offset 18, stack line 77 and exit 1 at the Join-Path call. Windows PowerShell 5.1 evaluated the optional PackageRoot default before PSScriptRoot was available. PackageRoot now has no parameter default; the script body resolves an omitted value from PSScriptRoot after binding, rejects explicit empty/whitespace values and normalizes the path. The `package root resolution` diagnostic stage and reviewed safe message remain covered by regression tests.
+
+Protected installer diagnostics remain part of the release: `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json`. Records preserve stage, UTC time, exception type, recognized error ID, reviewed safe messages and numeric line information. Unknown text/IDs, source paths, credentials and environment dumps are omitted. SYSTEM/Administrators-only storage, reparse rejection and unique CreateNew files protect the records. Logging failure preserves the original exit 1 and generic stdout. Successful live deployment resolves the earlier failure reports; diagnostics are retained for future failures.
+
+## Scope and merge readiness
+
+Automated checks and the successful one-device Intune installation and portal compliance evidence satisfy Milestone 2 validation. PR #2 is ready for maintainer merge review within this pilot scope; it remains open and must not be merged automatically.
+
+This is not production rollout approval or evidence of broad endpoint/ARM64 compatibility, functional attack blocking, cryptographic attestation or cloud telemetry receipt. Live uninstall/rollback and repeat-install behavior are not claimed by the final evidence; isolated automated tests cover those paths. Local administrators remain outside the attestation boundary. Hash inventories are not signatures. Production signing, wider deployment and additional live scenarios require separate review.
+
+This final update changes documentation only. Engine 0.1.1, Corporate-W11 1.0.0, verdict logic, detection semantics, deployment behavior and execution-policy handling are unchanged. No tenant changes were performed by this documentation update.

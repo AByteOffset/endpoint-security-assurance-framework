@@ -17,3 +17,4 @@ $configuration.Run.PassThru = $true
 $configuration.Output.Verbosity = 'Detailed'
 $result = Invoke-Pester -Configuration $configuration
 if ($result.FailedCount -gt 0 -or $result.PassedCount -eq 0) { throw 'Pester tests failed or no tests executed.' }
+& (Join-Path $PSScriptRoot 'Test-ESAFSecurity.ps1')

@@ -4,10 +4,13 @@ function Invoke-ESAFValidation {
         [string]$BaselinePath = (Join-Path $script:RepositoryRoot 'baselines/Corporate-W11.json'),
         [string]$ControlsPath = (Join-Path $script:RepositoryRoot 'controls'),
         [string]$OutputPath = (Join-Path $env:ProgramData 'ESAF'),
-        [switch]$Provisioning
+        [switch]$Provisioning,
+        [ValidateRange(0,600)][int]$LockTimeoutSeconds=30
     )
     $ErrorActionPreference = 'Stop'
     if (-not [Environment]::Is64BitProcess) { throw 'Run ESAF in 64-bit Windows PowerShell.' }
+    $executionLock=Enter-ESAFExecutionLock -TimeoutSeconds $LockTimeoutSeconds
+    try {
     $started = [DateTime]::UtcNow.ToString('o')
     $runId = New-ESAFRunId
     $baseline = Get-ESAFBaseline $BaselinePath
@@ -39,4 +42,5 @@ function Invoke-ESAFValidation {
         Write-ESAFReport $result $bundle $OutputPath
         $result
     } finally { if ($null -ne $lock) { $lock.Dispose() } }
+    } finally { Exit-ESAFExecutionLock $executionLock }
 }

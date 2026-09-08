@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'Fixtures.ps1')
     $script:root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     Import-Module (Join-Path $script:root 'src/ESAF.psd1') -Force
 }
@@ -217,12 +218,14 @@ Describe 'Intune lightweight compliance' {
     BeforeEach {
         $script:resultFile=Join-Path $TestDrive (([guid]::NewGuid().ToString())+'.json')
         $script:run='ESAF-20260907-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-        $script:fixture=[pscustomobject]@{schemaVersion='1.0';runId=$script:run;completedAt=[DateTime]::UtcNow.ToString('o');status='PASS';engineVersion='0.1.0';baseline=@{name='Corporate-W11';version='1.0.0'};controls=@(@('ESAF-MDE-001','ESAF-MDE-002','ESAF-AV-001','ESAF-AV-002','ESAF-NET-001') | ForEach-Object { @{id=$_;required=$true;status='PASS'} })}
-        Mock Get-ItemProperty { [pscustomobject]@{LastRunId='ESAF-20260907-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';Status='PASS';EngineVersion='0.1.0';BaselineVersion='1.0.0'} }
+        $script:fixture=New-ESAFTestResult
+        $global:ESAFTestFixture=$script:fixture
+        Mock Get-ItemProperty { New-ESAFTestRegistry $global:ESAFTestFixture }
+        Mock Get-Acl { & (Get-Module ESAF) { New-ESAFStorageAcl } }
     }
     It 'emits exactly one compressed JSON object for a current complete result' {
         $script:fixture | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile
-        $text=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile
+        $text=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile -InstallPath $script:root
         @($text).Count | Should -Be 1
         $text | Should -Not -Match "`n"
         ($text | ConvertFrom-Json).ESAFStatus | Should -Be PASS
@@ -230,28 +233,29 @@ Describe 'Intune lightweight compliance' {
     }
     It 'reports age separately without converting a recorded verdict to PENDING' {
         $script:fixture.completedAt=[DateTime]::UtcNow.AddDays(-365).ToString('o')
+        $script:fixture.startedAt=[DateTime]::UtcNow.AddDays(-366).ToString('o')
         $script:fixture | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile
-        $r=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json
+        $r=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile -InstallPath $script:root | ConvertFrom-Json
         $r.ESAFStatus | Should -Be PASS
         $r.CertificationFreshness | Should -Be Stale
     }
     It 'never promotes pending security certification to compliance PASS' {
-        $script:fixture.status='PENDING'; $script:fixture.controls[0].status='PENDING'
-        Mock Get-ItemProperty { [pscustomobject]@{LastRunId='ESAF-20260907-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';Status='PENDING';EngineVersion='0.1.0';BaselineVersion='1.0.0'} }
+        $script:fixture=New-ESAFTestResult PENDING
+        $global:ESAFTestFixture=$script:fixture
         $script:fixture | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile
-        $r=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json
+        $r=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile -InstallPath $script:root | ConvertFrom-Json
         $r.ESAFStatus | Should -Be PENDING
         $r.MDEAssurance | Should -Not -Be PASS
     }
     It 'fails closed for missing malformed incomplete or inconsistent results' {
-        (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
+        (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile -InstallPath $script:root | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
         foreach ($mode in @('malformed','incomplete','mismatch')) {
             $f=$script:fixture | ConvertTo-Json -Depth 10 | ConvertFrom-Json
             if ($mode -eq 'incomplete') { $f.controls=@() }
             if ($mode -eq 'mismatch') { $f.runId='different' }
             $f | ConvertTo-Json -Depth 10 | Set-Content $script:resultFile
             if ($mode -eq 'malformed') { '{' | Set-Content $script:resultFile }
-            (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
+            (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -ResultPath $script:resultFile -InstallPath $script:root | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
         }
     }
 }
