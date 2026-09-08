@@ -168,7 +168,7 @@ Describe 'Expanded baseline and certification contract' {
             $e=[pscustomobject]@{observed='Present';status='Collected';errorCategory=$null;errorMessage=$null}
             $r=Get-ESAFControlResult $c $e $true $false
             $r.status | Should -Be REVIEW
-            (Get-ESAFVerdict @($r)).status | Should -Be REVIEW
+            (Get-ESAFVerdict @($r)).status | Should -Be PASS
             $c=$controls | Where-Object id -eq 'ESAF-ASR-001';$e.observed='Assessed'
             $r=Get-ESAFControlResult $c $e $true $false
             $r.status | Should -Be PASS
@@ -196,12 +196,12 @@ Describe 'Expanded baseline and certification contract' {
             $r.controls[5].required=$false
             { Assert-ESAFResultContract $r } | Should -Throw
         }
-        It 'preserves REVIEW for optional assessment and ERROR without required failure counts' {
+        It 'preserves optional findings without downgrading certification or required failure counts' {
             $r=New-ESAFTestResult;$c=$r.controls | Where-Object id -eq 'ESAF-AV-006';$c.observed='Present';$c.status='REVIEW'
             $v=Get-ESAFVerdict $r.controls;$r.status=$v.status;$r.summary=$v.summary
             { Assert-ESAFResultContract $r } | Should -Not -Throw
             $c.observed='Error';$c.status='ERROR';$v=Get-ESAFVerdict $r.controls;$r.status=$v.status;$r.summary=$v.summary
-            $r.status | Should -Be REVIEW
+            $r.status | Should -Be PASS
             { Assert-ESAFResultContract $r } | Should -Not -Throw
         }
     }
@@ -259,5 +259,90 @@ Describe 'Milestone 3 upgrade and passive consumers' {
         Should -Invoke Import-Module -Times 0
         $source=Get-Content (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -Raw
         $source | Should -Not -Match 'Invoke-ESAFValidation|Get-ESAFEvidence|Get-MpPreference|Get-MpComputerStatus'
+    }
+}
+
+Describe 'Required-only certification semantics' {
+    InModuleScope ESAF {
+        BeforeAll { . (Join-Path $script:RepositoryRoot 'tests/Pester/Fixtures.ps1') }
+        It 'retains <Id> <Finding> while required controls certify PASS' -ForEach @(
+            @{Id='ESAF-AV-006';Finding='REVIEW';Observed='Present';Counter='review'},
+            @{Id='ESAF-ASR-001';Finding='REVIEW';Observed='Unknown';Counter='review'},
+            @{Id='ESAF-AV-006';Finding='ERROR';Observed='Error';Counter='errors'},
+            @{Id='ESAF-ASR-001';Finding='ERROR';Observed='Error';Counter='errors'},
+            @{Id='ESAF-ASR-001';Finding='PENDING';Observed='Unknown';Counter='pending'},
+            @{Id='ESAF-AV-006';Finding='NOT_APPLICABLE';Observed='Unknown';Counter='notApplicable'}
+        ) {
+            $r=New-ESAFTestResult
+            $c=$r.controls | Where-Object id -eq $Id
+            $c.status=$Finding;$c.observed=$Observed;$r.provisioning=($Finding -eq 'PENDING')
+            $v=Get-ESAFVerdict $r.controls;$r.status=$v.status;$r.summary=$v.summary
+            $r.status | Should -Be PASS
+            $c.status | Should -Be $Finding
+            $r.summary.$Counter | Should -Be 1
+            $r.summary.passed | Should -Be 13
+            $r.summary.criticalFailures | Should -Be 0
+            $r.summary.highFailures | Should -Be 0
+            { Assert-ESAFResultContract $r } | Should -Not -Throw
+            $r.status='REVIEW'
+            { Assert-ESAFResultContract $r } | Should -Throw
+        }
+        It 'retains simultaneous optional review and error summary counts' {
+            $r=New-ESAFTestResult
+            $c=$r.controls | Where-Object id -eq 'ESAF-AV-006';$c.status='REVIEW';$c.observed='Present'
+            $c=$r.controls | Where-Object id -eq 'ESAF-ASR-001';$c.status='ERROR';$c.observed='Error'
+            $v=Get-ESAFVerdict $r.controls;$r.status=$v.status;$r.summary=$v.summary
+            $r.status | Should -Be PASS
+            $r.summary.review | Should -Be 1
+            $r.summary.errors | Should -Be 1
+            $r.summary.passed | Should -Be 12
+            { Assert-ESAFResultContract $r } | Should -Not -Throw
+        }
+        It 'retains required <Finding> precedence as <Expected>' -ForEach @(
+            @{Id='ESAF-AV-003';Finding='FAIL';Observed='Disabled';Expected='FAIL'},
+            @{Id='ESAF-AV-005';Finding='ERROR';Observed='Error';Expected='FAIL'},
+            @{Id='ESAF-AV-003';Finding='REVIEW';Observed='Unknown';Expected='REVIEW'},
+            @{Id='ESAF-AV-003';Finding='PENDING';Observed='Unknown';Expected='PENDING'},
+            @{Id='ESAF-AV-003';Finding='NOT_APPLICABLE';Observed='Unknown';Expected='REVIEW'}
+        ) {
+            $r=New-ESAFTestResult
+            $c=$r.controls | Where-Object id -eq $Id;$c.status=$Finding;$c.observed=$Observed
+            $r.provisioning=($Finding -eq 'PENDING')
+            $optional=$r.controls | Where-Object id -eq 'ESAF-AV-006';$optional.status='ERROR';$optional.observed='Error'
+            $v=Get-ESAFVerdict $r.controls;$r.status=$v.status;$r.summary=$v.summary
+            $r.status | Should -Be $Expected
+            { Assert-ESAFResultContract $r } | Should -Not -Throw
+        }
+        It 'keeps required lower-severity failures at REVIEW and optional FAIL visible without gating' {
+            foreach($finding in @('FAIL','ERROR')) {
+                $r=[pscustomobject]@{required=$true;severity='medium';status=$finding}
+                (Get-ESAFVerdict @($r)).status | Should -Be REVIEW
+                $r.required=$false
+                $v=Get-ESAFVerdict @($r)
+                $v.status | Should -Be PASS
+                ($v.summary.failed+$v.summary.errors) | Should -Be 1
+            }
+        }
+    }
+}
+
+Describe 'Optional assessments in passive Intune compliance' {
+    It 'emits overall PASS while preserving optional review and error evidence' {
+        $r=New-ESAFTestResult
+        $c=$r.controls | Where-Object id -eq 'ESAF-AV-006';$c.status='REVIEW';$c.observed='Present'
+        $c=$r.controls | Where-Object id -eq 'ESAF-ASR-001';$c.status='ERROR';$c.observed='Error'
+        $v=& (Get-Module ESAF) { param($controls) Get-ESAFVerdict $controls } $r.controls
+        $r.status=$v.status;$r.summary=$v.summary;$global:ESAFTestFixture=$r
+        Mock Get-ItemProperty { New-ESAFTestRegistry $global:ESAFTestFixture }
+        Mock Get-Acl { & (Get-Module ESAF) { New-ESAFStorageAcl } }
+        $path=Join-Path $TestDrive 'optional.json';$r | ConvertTo-Json -Depth 8 | Set-Content $path
+        $before=(Get-FileHash $path).Hash
+        $result=& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -InstallPath $script:root -ResultPath $path | ConvertFrom-Json
+        $result.ESAFStatus | Should -Be PASS
+        $result.DefenderAssurance | Should -Be REVIEW
+        (Get-FileHash $path).Hash | Should -Be $before
+        $saved=Get-Content $path -Raw | ConvertFrom-Json
+        $saved.summary.review | Should -Be 1
+        $saved.summary.errors | Should -Be 1
     }
 }

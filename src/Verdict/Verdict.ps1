@@ -28,7 +28,7 @@ function Get-ESAFVerdict {
     }
     if ($summary.criticalFailures + $summary.highFailures -gt 0) { $status='FAIL' }
     elseif (@($Results | Where-Object { $_.required -and $_.status -eq 'PENDING' }).Count) { $status='PENDING' }
-    elseif ($Results.Count -eq 0 -or @($Results | Where-Object { $_.status -in @('FAIL','ERROR','REVIEW','PENDING') -or ($_.required -and $_.status -eq 'NOT_APPLICABLE') }).Count) { $status='REVIEW' }
+    elseif ($Results.Count -eq 0 -or @($Results | Where-Object { $_.required -and $_.status -in @('FAIL','ERROR','REVIEW','PENDING','NOT_APPLICABLE') }).Count) { $status='REVIEW' }
     else { $status='PASS' }
     [pscustomobject]@{ status=$status; summary=[pscustomobject]$summary }
 }

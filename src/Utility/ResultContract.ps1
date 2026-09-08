@@ -42,7 +42,7 @@ function Assert-ESAFResultContract {
         $value=$Result.summary.$key
         if (($value -isnot [int] -and $value -isnot [long]) -or $value -ne $counts[$key]) { throw 'Invalid certification summary.' }
     }
-    $status=if ($counts.criticalFailures+$counts.highFailures -gt 0) {'FAIL'} elseif (@($Result.controls | Where-Object { $_.required -and $_.status -eq 'PENDING' }).Count) {'PENDING'} elseif (@($Result.controls | Where-Object { $_.status -in @('FAIL','ERROR','REVIEW','PENDING') -or ($_.required -and $_.status -eq 'NOT_APPLICABLE') }).Count) {'REVIEW'} else {'PASS'}
+    $status=if ($counts.criticalFailures+$counts.highFailures -gt 0) {'FAIL'} elseif (@($Result.controls | Where-Object { $_.required -and $_.status -eq 'PENDING' }).Count) {'PENDING'} elseif (@($Result.controls | Where-Object { $_.required -and $_.status -in @('FAIL','ERROR','REVIEW','PENDING','NOT_APPLICABLE') }).Count) {'REVIEW'} else {'PASS'}
     if ($Result.status -cne $status) { throw 'Inconsistent aggregate verdict.' }
 }
 

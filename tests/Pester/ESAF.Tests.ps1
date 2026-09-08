@@ -68,12 +68,12 @@ Describe 'ESAF definitions and verdicts' {
             $v.status | Should -Be FAIL
             $v.summary.criticalFailures | Should -Be 1
         }
-        It 'maps high failures to FAIL and medium or optional failures to REVIEW' {
+        It 'maps required high failures to FAIL and required medium failures to REVIEW' {
             $e.observed='Audit'
             $r=Get-ESAFControlResult $cs[4] $e $true $false
             (Get-ESAFVerdict @($r)).status | Should -Be FAIL
             $r.required=$false
-            (Get-ESAFVerdict @($r)).status | Should -Be REVIEW
+            (Get-ESAFVerdict @($r)).status | Should -Be PASS
             $r.required=$true; $r.severity='medium'
             (Get-ESAFVerdict @($r)).status | Should -Be REVIEW
         }
