@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-AV-003",
+  "title": "Cloud-delivered protection",
+  "description": "Read-only local assessment: Cloud-delivered protection.",
+  "category": "defender",
+  "severity": "high",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Enabled"
+  },
+  "evidenceProvider": "CloudProtection",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the effective local state and assigned organizational policy. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/powershell/module/defender/get-mppreference"
+  ]
+}

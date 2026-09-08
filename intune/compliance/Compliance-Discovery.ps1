@@ -7,7 +7,7 @@ try {
     . (Join-Path $InstallPath 'src/Utility/ResultContract.ps1')
     if ($MaximumAgeHours -lt 1) { throw 'Invalid age policy.' }
     $r=Get-Content -LiteralPath $ResultPath -Raw | ConvertFrom-Json
-    Assert-ESAFResultContract $r
+    Assert-ESAFResultContract $r -EngineVersion '0.2.0' -BaselineVersion '1.1.0'
     Assert-ESAFRegistryConsistency $r (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\ESAF')
     if (-not (Test-ESAFStorageAcl (Split-Path $ResultPath -Parent)) -or -not (Test-ESAFStorageAcl $ResultPath)) { throw 'Untrusted result permissions.' }
     $output.ESAFStatus=$r.status; $output.BaselineVersion=$r.baseline.version; $output.EngineVersion=$r.engineVersion; $output.CertificationRunId=$r.runId

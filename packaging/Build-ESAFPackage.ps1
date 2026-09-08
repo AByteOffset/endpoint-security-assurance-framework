@@ -22,9 +22,10 @@ if (Test-Path -LiteralPath $stage) {
 $null=New-Item -ItemType Directory -Path $stage -Force
 try {
 $paths=@('src/ESAF.psd1','src/ESAF.psm1','baselines/Corporate-W11.json','tools/Invoke-ESAF.ps1','tools/Test-ESAFInstallation.ps1','tools/Test-ESAFSystemContext.ps1')
-$paths+=@('src/Core/Invoke-ESAFValidation.ps1','src/Controls/Definitions.ps1','src/Evidence/Normalization.ps1','src/Evidence/Providers.ps1','src/Verdict/Verdict.ps1','src/Reporting/Reporting.ps1','src/Utility/Utility.ps1','src/Utility/Installation.ps1','src/Utility/ExecutionLock.ps1','src/Utility/ResultContract.ps1')
-# Only the five reviewed baseline definitions are staged.
+$paths+=@('src/Core/Invoke-ESAFValidation.ps1','src/Controls/Definitions.ps1','src/Evidence/Normalization.ps1','src/Evidence/Providers.ps1','src/Evidence/ExpandedProviders.ps1','src/Verdict/Verdict.ps1','src/Reporting/Reporting.ps1','src/Utility/Utility.ps1','src/Utility/Installation.ps1','src/Utility/ExecutionLock.ps1','src/Utility/ResultContract.ps1')
+# Only the fourteen reviewed baseline definitions are staged.
 $paths+=@('controls/mde/ESAF-MDE-001.json','controls/mde/ESAF-MDE-002.json','controls/defender/ESAF-AV-001.json','controls/defender/ESAF-AV-002.json','controls/network/ESAF-NET-001.json')
+$paths+=@('controls/defender/ESAF-AV-003.json','controls/defender/ESAF-AV-004.json','controls/defender/ESAF-AV-005.json','controls/defender/ESAF-AV-006.json','controls/network/ESAF-NET-002.json','controls/disk/ESAF-DISK-001.json','controls/hardware/ESAF-HW-001.json','controls/hardware/ESAF-HW-002.json','controls/asr/ESAF-ASR-001.json')
 foreach ($relative in $paths) {
     $destination=Join-Path $stage ('payload/'+$relative)
     $null=New-Item -ItemType Directory -Path (Split-Path $destination -Parent) -Force
@@ -43,7 +44,7 @@ foreach ($file in Get-ChildItem $stage -Recurse -File) {
 }
 & $module { param($stage) $b=Get-ESAFBaseline (Join-Path $stage 'payload/baselines/Corporate-W11.json'); $null=@(Get-ESAFControls $b (Join-Path $stage 'payload/controls')) } $stage
 $files=@(Get-ChildItem $stage -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{path=$_.FullName.Substring($stage.Length+1).Replace('\','/');sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash} })
-$manifest=[ordered]@{schemaVersion='1.0';engineVersion='0.1.1';baseline=@{name='Corporate-W11';version='1.0.0'};buildTime=[DateTime]::UtcNow.ToString('o');entryPoint='Install-ESAF.ps1';detectionScript='Detect-ESAF.ps1';files=$files}
+$manifest=[ordered]@{schemaVersion='1.0';engineVersion='0.2.0';baseline=@{name='Corporate-W11';version='1.1.0'};buildTime=[DateTime]::UtcNow.ToString('o');entryPoint='Install-ESAF.ps1';detectionScript='Detect-ESAF.ps1';files=$files}
 $manifest | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $stage 'package-manifest.json') -Encoding UTF8
 $null=Assert-ESAFPackage $stage
 } catch {

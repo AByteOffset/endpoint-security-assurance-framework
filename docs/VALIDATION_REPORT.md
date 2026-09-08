@@ -1,46 +1,69 @@
-# Milestone 2 validation report
+# Milestone 3 validation report
 
 ## Automated validation
 
-The complete Windows PowerShell 5.1 Pester suite passes 75 tests, with 0 failures, skips or inconclusive results. Production security scanning passes and the tracked-file secret scan finds no matches. These are development checks, distinct from the owner-reported live Intune evidence below. CI runs the same suite and security scan; consult PR #2 checks for each remote run result.
+The complete Windows PowerShell 5.1 Pester suite passes 153 tests, with 0 failures, skips, or inconclusive results. The production security scan passes, and the repository secret scan finds no matches. These development checks are distinct from the owner-confirmed live evidence below. Tests use mocked Windows security providers and isolated filesystem and registry boundaries; they do not replace endpoint or Intune validation.
 
-Coverage includes baseline/control validation, evidence normalization, verdict logic, result/registry consistency, protected ACL intent, deterministic staging and SHA-256 integrity rejection, installation success/failure separation, module reload, execution-lock contention/release, atomic publication, detection and compliance semantics, isolated uninstall, sanitized diagnostics, and package-root resolution. Privileged filesystem/registry boundaries are substituted in relevant tests. Mocked tests do not establish actual SYSTEM deployment or portal compliance.
+Coverage includes all fourteen controls, provider positive/negative/unavailable/error states, baseline-driven signature freshness, sanitized exclusion and ASR evidence, required-only aggregate verdicts, the fourteen-control result contract, deterministic packaging, version-aware detection, passive Custom Compliance, and all retained Milestone 2 installation hardening. The repository workflow runs the same suite and security scan; consult PR #3 checks for its remote result.
 
-## Successful live one-device Intune pilot — 2026-09-08
+## Owner-confirmed live endpoint validation — 2026-09-08
 
-Source: final live validation evidence supplied by the project owner from the Windows 11 MDE lab VM. The development agent did not independently operate the tenant or inspect the VM. This records a completed pilot, separate from the automated suite.
+The project owner completed Milestone 3 validation on `DESKTOP-GFRP15O`. This evidence was supplied by the owner; the development agent did not independently operate or inspect the VM or tenant.
 
-| Evidence | Live result |
+The installed engine upgraded from 0.1.1 to 0.2.0, and Corporate-W11 upgraded from baseline 1.0.0 to 1.1.0. Before upgrade, the Milestone 3 detection script returned exit code 1 against the old installation, proving that 0.1.1 / 1.0.0 was no longer current and recertification was required.
+
+| Evidence | Confirmed value |
 | --- | --- |
-| Device | DESKTOP-GFRP15O |
-| Win32 app | ESAF - Endpoint Security Assurance Framework 0.1.1 - Pilot |
-| Intune app state | Installed |
-| Installation directory | C:\Program Files\ESAF exists |
-| Deployment context | Intune machine/SYSTEM, native 64-bit Windows PowerShell |
-| Engine | 0.1.1 |
-| Baseline | Corporate-W11 1.0.0 |
-| Final Run ID | ESAF-20260908-4180E576390BD031F3893333FE968A80 |
-| Overall ESAF verdict | PASS |
-| Controls | 5 passed; 0 failed, review, pending or errors |
-| Installation verifier | Engine, Baseline, ResultIntegrity, RegistryConsistency, StorageAcl and Certification all PASS |
-| Program Files ACL | C:\Program Files\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
-| ProgramData ACL | C:\ProgramData\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
-| Intune compliance policy | ESAF Endpoint Security Compliance - Pilot |
-| Final portal custom setting | ESAFStatus = Compliant |
+| Old Run ID | `ESAF-20260908-4180E576390BD031F3893333FE968A80` |
+| Old result SHA-256 | `C89D79664A8E38711397C8A0BBCD2A2EAB29EB5A36897C26D094D1D852DFAE21` |
+| New Run ID | `ESAF-20260908-0DED50AE5202FD2855607798E05B80E4` |
+| New completion time | `2026-09-08T21:42:18.9242558Z` |
+| Overall status | `FAIL` |
+| Summary | 12 passed, 2 failed, 0 review, 0 pending, 0 errors |
+| Failure counts | 0 critical, 2 high |
 
-Local Custom Compliance discovery returned ESAFStatus PASS, MDEAssurance PASS, DefenderAssurance PASS, NetworkAssurance PASS, BaselineVersion 1.0.0, EngineVersion 0.1.1 and CertificationFreshness Fresh. The portal setting is recorded separately: the local discovery result alone was not used to claim Intune compliance.
+The two failures are accurate endpoint security-assurance findings, not framework defects:
 
-## Pilot defects fixed and retained hardening
+- `ESAF-DISK-001` expected `Protected` and observed `Off`. Independent `Get-BitLockerVolume` output showed `C:` as `FullyDecrypted`, protection `Off`, and encryption percentage 0.
+- `ESAF-HW-002` expected `Enabled` and observed `Disabled`. Independent `Confirm-SecureBootUEFI` returned `False`.
 
-1. The unsigned installer initially exited 1 before creating Program Files/ESAF. The earlier detailed evidence reported persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The launch needed process-only `-ExecutionPolicy Bypass`; the install command and native uninstall wrapper now include it. No Set-ExecutionPolicy call, persistent LocalMachine/CurrentUser change, execution-policy registry value or GPO weakening was added. Production should prefer signed release scripts and normal organizational script-control policy.
-2. After that correction, package version 2 still failed under SYSTEM. Manifest validation, module import, paths, payload directories, temporary payload copy/ACLs and execution-lock acquisition passed isolated live checks. Protected diagnostics identified `package support load`, `System.Management.Automation.ParameterBindingValidationException`, line 77, offset 18, stack line 77 and exit 1 at the Join-Path call. Windows PowerShell 5.1 evaluated the optional PackageRoot default before PSScriptRoot was available. PackageRoot now has no parameter default; the script body resolves an omitted value from PSScriptRoot after binding, rejects explicit empty/whitespace values and normalizes the path. The `package root resolution` diagnostic stage and reviewed safe message remain covered by regression tests.
+The other new controls matched independent local Windows state:
 
-Protected installer diagnostics remain part of the release: `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json`. Records preserve stage, UTC time, exception type, recognized error ID, reviewed safe messages and numeric line information. Unknown text/IDs, source paths, credentials and environment dumps are omitted. SYSTEM/Administrators-only storage, reparse rejection and unique CreateNew files protect the records. Logging failure preserves the original exit 1 and generic stdout. Successful live deployment resolves the earlier failure reports; diagnostics are retained for future failures.
+- MAPSReporting 2 normalized to CloudProtection `Enabled / PASS`.
+- The Defender antivirus signature timestamp was present and within the 72-hour baseline, producing `Fresh / PASS`.
+- IsTamperProtected was True, producing `Enabled / PASS`.
+- Visible Defender exclusion counts were Path 0, Process 0, Extension 0, and IP 0, producing `Clear / PASS`.
+- Domain, Private, and Public firewall profiles were all True, producing `Enabled / PASS`.
+- TPM was present and ready, producing `Ready / PASS`.
+- ASR inventory was collected successfully, producing `Assessed / PASS`.
 
-## Scope and merge readiness
+The installed verifier returned Engine PASS, Baseline PASS, ResultIntegrity PASS, RegistryConsistency PASS, StorageAcl PASS, LatestRunId `ESAF-20260908-0DED50AE5202FD2855607798E05B80E4`, and Certification FAIL. `Certification FAIL` is the expected, correct assurance outcome for two required high-severity mismatches. Installation and publication succeeded; an ESAF security verdict of FAIL is not an installer failure.
 
-Automated checks and the successful one-device Intune installation and portal compliance evidence satisfy Milestone 2 validation. PR #2 is ready for maintainer merge review within this pilot scope; it remains open and must not be merged automatically.
+Protected history was preserved at `C:\ProgramData\ESAF\history` for these runs:
 
-This is not production rollout approval or evidence of broad endpoint/ARM64 compatibility, functional attack blocking, cryptographic attestation or cloud telemetry receipt. Live uninstall/rollback and repeat-install behavior are not claimed by the final evidence; isolated automated tests cover those paths. Local administrators remain outside the attestation boundary. Hash inventories are not signatures. Production signing, wider deployment and additional live scenarios require separate review.
+- `ESAF-20260907-F4233EC9C04220E8AA463F641F3DD644`
+- `ESAF-20260908-4180E576390BD031F3893333FE968A80`
+- `ESAF-20260908-0DED50AE5202FD2855607798E05B80E4`
 
-This final update changes documentation only. Engine 0.1.1, Corporate-W11 1.0.0, verdict logic, detection semantics, deployment behavior and execution-policy handling are unchanged. No tenant changes were performed by this documentation update.
+Historical Milestone 2 evidence remains in [MILESTONE2_VALIDATION_REPORT.md](MILESTONE2_VALIDATION_REPORT.md).
+
+## Owner-confirmed Intune portal validation
+
+The existing Win32 app was updated in place to `ESAF - Endpoint Security Assurance Framework 0.2.0 - Pilot`. Intune reported Device install status `Installed`; the assignment remained limited to `MDE-LAB-DEVICES`. Custom Compliance discovery required engine 0.2.0 and baseline 1.1.0, while the rule remained `ESAFStatus = PASS`.
+
+Company Portal displayed `Can't access company resources` and `Endpoint assurance requires attention`. The Intune compliance policy ultimately showed Compliant 0, Noncompliant 1, and `DESKTOP-GFRP15O = Not compliant`. The latest observed Intune compliance contact was approximately `09/08/2026 5:50 PM`.
+
+This validates the full Milestone 3 chain:
+
+```text
+Intune Win32 deployment -> ESAF certification -> local evidence -> ESAF FAIL
+-> Custom Compliance -> Intune Noncompliant -> Company Portal enforcement
+```
+
+The two endpoint gaps correctly drove the overall FAIL and the unchanged Intune rule correctly produced Noncompliant. No remediation was performed or implied.
+
+## Scope and limitations
+
+Milestone 3 automated validation, one-device endpoint validation, version-aware recertification, installation integrity, evidence history, Custom Compliance ingestion, Intune noncompliance, and Company Portal enforcement are now owner-confirmed. PR #3 is ready for merge review within this milestone's one-device pilot scope; it remains open and must not be merged automatically.
+
+This evidence is not production rollout approval, broad hardware compatibility, ARM64 validation, functional attack-blocking proof, or cryptographic attestation. MAPS remains a local participation setting rather than proof of cloud connectivity. Empty visible exclusions cannot disprove hidden exclusions, and ASR `Assessed` confirms inventory collection rather than a universal ASR policy. Local administrators remain outside the attestation boundary. Engine 0.2.0, Corporate-W11 1.1.0, providers, verdicts, installer, detection, and compliance behavior are unchanged by this documentation update.

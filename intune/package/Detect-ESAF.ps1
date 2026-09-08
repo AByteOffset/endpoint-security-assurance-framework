@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param([string]$RequiredEngineVersion='0.1.1',[string]$RequiredBaselineVersion='1.0.0',[string]$InstallPath=(Join-Path $env:ProgramFiles 'ESAF'),[string]$ResultPath=(Join-Path $env:ProgramData 'ESAF/result.json'))
+param([string]$RequiredEngineVersion='0.2.0',[string]$RequiredBaselineVersion='1.1.0',[string]$InstallPath=(Join-Path $env:ProgramFiles 'ESAF'),[string]$ResultPath=(Join-Path $env:ProgramData 'ESAF/result.json'))
 $ErrorActionPreference='Stop'
 try {
     if (-not [Environment]::Is64BitProcess -or -not (Test-Path -LiteralPath $InstallPath -PathType Container)) { exit 1 }

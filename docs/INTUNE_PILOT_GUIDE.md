@@ -1,4 +1,4 @@
-# Milestone 2: ONE-device Intune pilot
+# ONE-device Intune pilot and Milestone 3 recertification
 
 Foundation 0.1.0 live MDE/ACL/JSON success was reported by the project owner. The owner has now reported successful 0.1.1 SYSTEM deployment and Intune custom compliance on one device; see [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for final live evidence and automated test results. This guide remains the repeatable pilot procedure. Development has made no tenant changes. Do not broaden deployment or add active tests.
 
@@ -12,7 +12,7 @@ From a clean reviewed checkout in 64-bit Windows PowerShell 5.1, using organizat
 
 ```powershell
 git fetch origin
-git switch feature/intune-pilot-deployment
+git switch feature/expanded-security-controls
 git pull --ff-only
 Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPublisherCheck
 .\tools\Test-ESAF.ps1
@@ -39,7 +39,7 @@ Current Microsoft guidance uses Intune admin center > Apps > All Apps > Create, 
 
 | Setting | Pilot value |
 | --- | --- |
-| Name | ESAF 0.1.1 - One-device pilot |
+| Name | Update existing ESAF pilot app to 0.2.0 |
 | Publisher | Approved internal publisher / ESAF |
 | Description | Read-only endpoint assurance; security verdict is separate from app install |
 | Installer type | Command line |
@@ -71,7 +71,7 @@ Uninstall-ESAF.cmd
 
 The wrapper chooses Sysnative when available, otherwise System32, then invokes `"%ESAF_PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0Uninstall-ESAF.ps1"`. It avoids relying on environment variable expansion in Intune's uninstall field.
 
-Detection: Use a custom detection script, upload staged Detect-ESAF.ps1, set Run script as 32-bit process on 64-bit clients = No. For this approved unsigned pilot, set Enforce script signature check = No; production signed releases should follow organizational signature policy. Detection uses the installed protected ResultContract helper and requires engine 0.1.1, Corporate-W11 1.0.0, complete result and matching registry summary. Exit 0 with stdout means installed. Completed PASS/REVIEW/FAIL/PENDING all qualify; elapsed age never triggers reinstallation. Missing files or inconsistent versions/state are not detected.
+Detection: Use a custom detection script, upload staged Detect-ESAF.ps1, set Run script as 32-bit process on 64-bit clients = No. For this approved unsigned pilot, set Enforce script signature check = No; production signed releases should follow organizational signature policy. Detection uses the installed protected ResultContract helper and requires engine 0.2.0, Corporate-W11 1.1.0, complete result and matching registry summary. Exit 0 with stdout means installed. Completed PASS/REVIEW/FAIL/PENDING all qualify; elapsed age never triggers reinstallation. Missing files or inconsistent versions/state are not detected.
 
 Review final assignments and count ONE device before saving. Do not assign compliance until app installation and local verification succeed. [Microsoft Win32 configuration](https://learn.microsoft.com/en-us/intune/app-management/deployment/add-win32).
 
@@ -121,8 +121,10 @@ Default uninstall removes Program Files/ESAF and HKLM SOFTWARE/ESAF, preserving 
 
 Stop at this one-device pilot. Wider assignments require owner review of actual IME/SYSTEM and compliance evidence.
 
-After this launch correction, rebuild staging and the .intunewin package so the updated uninstall wrapper and manifest are included. Update the existing one-device app install command and retry only the approved device. Old 0.1.0 ProgramData and registry artifacts do not prove 0.1.1 installation. Confirm Program Files/ESAF, installed version and a new matching Run ID before assigning compliance.
+After this launch correction, rebuild staging and the .intunewin package so the updated uninstall wrapper and manifest are included. Update the existing one-device app install command and retry only the approved device. Old 0.1.1 / 1.0.0 ProgramData and registry artifacts do not prove 0.2.0 / 1.1.0 recertification. Confirm Program Files/ESAF, installed version and a new matching Run ID before assigning compliance.
 
 Installer failures retain the generic stdout message and exit 1. Secure bootstrap diagnostics are written as one JSON record per failure to `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json` (CommonApplicationData/ESAF on a relocated system). The bootstrap logger is embedded in Install-ESAF.ps1 so package/module load failures can be recorded. Records contain UTC time, stage, exception type, recognized PowerShell error ID, a reviewed literal message or redaction marker, numeric script/stack line locations, and exit code. Arbitrary exception text, unknown error IDs, paths, source lines, target objects, credentials and environment dumps are omitted. Unknown messages are intentionally redacted; stage/type/line information remains available for diagnosis.
 
 The logger creates protected directories with only SYSTEM and BUILTIN\Administrators FullControl, checks existing owner/ACLs and rejects reparse paths. Unsafe existing storage causes logging to fail closed without changing the installation failure or exposing details on stdout. Unique CreateNew files inherit the protected directory ACL and avoid shared-log append/overwrite races. Logging is best effort and has no dependency on successful payload import or lock acquisition. Rebuild staging and .intunewin to include this installer before the next one-device SYSTEM retry. Read the newest JSON locally as an administrator; do not publish raw endpoint evidence. The owner-reported successful SYSTEM installation and portal compliance are recorded in the validation report; these diagnostics remain part of the hardening outcome.
+
+Milestone 3 is not yet live-validated. Use [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) to update the existing app, prove old-version detection fails, deploy 0.2.0 / 1.1.0 and inspect fourteen controls. Earlier successful 0.1.1 evidence does not certify new requirements. Do not create broad assignments, force the VM to PASS, or change protection to create test cases.

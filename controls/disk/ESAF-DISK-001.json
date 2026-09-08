@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-DISK-001",
+  "title": "BitLocker OS-volume protection",
+  "description": "Read-only local assessment: BitLocker OS-volume protection.",
+  "category": "disk",
+  "severity": "high",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Protected"
+  },
+  "evidenceProvider": "BitLockerOS",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the effective local state and assigned organizational policy. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/powershell/module/bitlocker/get-bitlockervolume"
+  ]
+}

@@ -5,6 +5,15 @@ function Get-ESAFProviderRegistry {
         MDESensorService = @{ Function='Get-ESAFSensorEvidence'; Category='mde'; ExpectedStates=@('Running','Stopped','Missing','Paused') }
         DefenderAntivirus = @{ Function='Get-ESAFAntivirusEvidence'; Category='defender'; ExpectedStates=@('Active','Passive','Disabled') }
         RealTimeProtection = @{ Function='Get-ESAFRealTimeEvidence'; Category='defender'; ExpectedStates=@('Enabled','Disabled') }
+        CloudProtection = @{ Function='Get-ESAFCloudEvidence'; Category='defender'; ExpectedStates=@('Enabled') }
+        SecurityIntelligence = @{ Function='Get-ESAFSignatureEvidence'; Category='defender'; ExpectedStates=@('Fresh') }
+        TamperProtection = @{ Function='Get-ESAFTamperEvidence'; Category='defender'; ExpectedStates=@('Enabled') }
+        DefenderExclusions = @{ Function='Get-ESAFExclusionEvidence'; Category='defender'; ExpectedStates=@('Clear') }
+        WindowsFirewall = @{ Function='Get-ESAFFirewallEvidence'; Category='network'; ExpectedStates=@('Enabled') }
+        BitLockerOS = @{ Function='Get-ESAFBitLockerEvidence'; Category='disk'; ExpectedStates=@('Protected') }
+        TPMReadiness = @{ Function='Get-ESAFTpmEvidence'; Category='hardware'; ExpectedStates=@('Ready') }
+        SecureBoot = @{ Function='Get-ESAFSecureBootEvidence'; Category='hardware'; ExpectedStates=@('Enabled') }
+        ASRAssessment = @{ Function='Get-ESAFAsrEvidence'; Category='asr'; ExpectedStates=@('Assessed') }
         NetworkProtection = @{ Function='Get-ESAFNetworkEvidence'; Category='network'; ExpectedStates=@('Block','Audit','Disabled') }
     }
 }
@@ -53,15 +62,15 @@ function Get-ESAFNetworkEvidence {
 }
 
 function Get-ESAFEvidence {
-    param([string]$Provider)
+    param([string]$Provider,$Policy)
     try {
         $registry=Get-ESAFProviderRegistry
         if (@($registry.Keys) -cnotcontains $Provider) { throw 'Unapproved provider.' }
-        $item=& $registry[$Provider].Function
+        $item=if ($Provider -ceq 'SecurityIntelligence') { & $registry[$Provider].Function -Policy $Policy } else { & $registry[$Provider].Function }
         [pscustomobject]@{evidenceProvider=$Provider;observed=$item.observed;collectedAt=[DateTime]::UtcNow.ToString('o');raw=$item.raw;status='Collected';errorCategory=$null;errorMessage=$null}
     } catch {
         # Never serialize provider exceptions, which could contain sensitive output.
-        $category=if ($_.Exception -is [UnauthorizedAccessException]) { 'AccessDenied' } else { 'CollectionFailed' }
+        $category=if ($_.Exception -is [UnauthorizedAccessException]) { 'AccessDenied' } elseif ($_.Exception -is [Management.Automation.CommandNotFoundException] -or $_.Exception -is [PlatformNotSupportedException]) { 'Unsupported' } else { 'CollectionFailed' }
         [pscustomobject]@{evidenceProvider=$Provider;observed='Error';collectedAt=[DateTime]::UtcNow.ToString('o');raw=[pscustomobject]@{};status='ERROR';errorCategory=$category;errorMessage='Evidence collection failed; inspect approved local diagnostics.'}
     }
 }

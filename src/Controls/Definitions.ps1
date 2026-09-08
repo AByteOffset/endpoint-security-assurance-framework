@@ -1,16 +1,17 @@
 function Get-ESAFBaseline {
     param([string]$Path)
     $b = Read-ESAFJson $Path
-    Assert-ESAFFields $b @('schemaVersion','name','version','engineCompatibility','platform','minimumBuild','controls')
+    Assert-ESAFFields $b @('schemaVersion','name','version','engineCompatibility','platform','minimumBuild','controls','securityIntelligenceMaxAgeHours')
     foreach ($field in @('schemaVersion','name','version','engineCompatibility','platform')) { Assert-ESAFString $b.$field }
     if ($b.schemaVersion -cne '1.0' -or $b.name -notmatch '^[A-Za-z0-9-]+$' -or $b.version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid baseline identity.' }
     if ($b.engineCompatibility -notmatch '^>= (\d+\.\d+\.\d+)$') { throw 'Unsupported engine compatibility expression.' }
     if ([version]$script:EngineVersion -lt [version]$Matches[1]) { throw 'Engine is older than the baseline requirement.' }
     if ($b.platform -cne 'Windows' -or $b.minimumBuild -isnot [long] -and $b.minimumBuild -isnot [int] -or $b.minimumBuild -lt 1) { throw 'Invalid platform constraints.' }
     if ($b.controls -isnot [array] -or $b.controls.Count -eq 0) { throw 'Baseline requires controls.' }
+    if (($b.securityIntelligenceMaxAgeHours -isnot [int] -and $b.securityIntelligenceMaxAgeHours -isnot [long]) -or $b.securityIntelligenceMaxAgeHours -lt 1 -or $b.securityIntelligenceMaxAgeHours -gt 720) { throw 'Invalid signature freshness policy.' }
     $seen = @{}
     foreach ($id in $b.controls) {
-        if ($id -isnot [string] -or $id -cnotmatch '^ESAF-(MDE|AV|NET)-\d{3}$' -or $seen.ContainsKey($id)) { throw 'Invalid or duplicate control ID.' }
+        if ($id -isnot [string] -or $id -cnotmatch '^ESAF-(MDE|AV|NET|DISK|HW|ASR)-\d{3}$' -or $seen.ContainsKey($id)) { throw 'Invalid or duplicate control ID.' }
         $seen[$id] = $true
     }
     $b
@@ -19,9 +20,9 @@ function Get-ESAFBaseline {
 function Get-ESAFControls {
     param($Baseline, [string]$ControlsPath)
     $providers = Get-ESAFProviderRegistry
-    $categories = @{ MDE='mde'; AV='defender'; NET='network' }
+    $categories = @{ MDE='mde'; AV='defender'; NET='network'; DISK='disk'; HW='hardware'; ASR='asr' }
     foreach ($id in $Baseline.controls) {
-        if ($id -cnotmatch '^ESAF-(MDE|AV|NET)-\d{3}$') { throw 'Invalid control ID.' }
+        if ($id -cnotmatch '^ESAF-(MDE|AV|NET|DISK|HW|ASR)-\d{3}$') { throw 'Invalid control ID.' }
         $category = $categories[$Matches[1]]
         $c = Read-ESAFJson (Join-Path $ControlsPath ($category + '/' + $id + '.json'))
         Assert-ESAFFields $c @('id','title','description','category','severity','profiles','required','expected','evidenceProvider','functionalTest','remediationGuidance','references')

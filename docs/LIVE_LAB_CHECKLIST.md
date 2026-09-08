@@ -1,3 +1,7 @@
+# Milestone 3 live validation status
+
+Milestone 3 engine 0.2.0 / Corporate-W11 1.1.0 was owner-validated on `DESKTOP-GFRP15O` on 2026-09-08. The accurate endpoint result was FAIL because BitLocker was off and Secure Boot was disabled; Intune consequently reported the device Not compliant. See [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) and [VALIDATION_REPORT.md](VALIDATION_REPORT.md). The checklist below remains the historical foundation procedure.
+
 # First safe live lab test - before Intune packaging
 
 The project owner reports successful foundation 0.1.0 live five-control PASS, restricted ACLs and compressed compliance JSON on a Windows 11 MDE lab device. This checklist is retained as the historical manual-assessment procedure; Milestone 2 does not redo that foundation. Use INTUNE_PILOT_GUIDE.md for the new 0.1.1 deployment. The owner has now reported successful 0.1.1 Intune SYSTEM/IME installation and portal custom compliance; see [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for the final evidence, separate from this historical procedure. No security settings, EICAR or active demonstrations are part of either milestone.

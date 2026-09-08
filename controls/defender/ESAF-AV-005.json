@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-AV-005",
+  "title": "Tamper Protection",
+  "description": "Read-only local assessment: Tamper Protection.",
+  "category": "defender",
+  "severity": "critical",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Enabled"
+  },
+  "evidenceProvider": "TamperProtection",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the effective local state and assigned organizational policy. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/powershell/module/defender/get-mppreference"
+  ]
+}

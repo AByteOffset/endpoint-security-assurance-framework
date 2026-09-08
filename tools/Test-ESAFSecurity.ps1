@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param([string]$RepositoryRoot=(Split-Path $PSScriptRoot -Parent))
 $ErrorActionPreference='Stop'
-$forbidden=@('Set-MpPreference','Add-MpPreference','Remove-MpPreference','Set-NetFirewallProfile','Set-NetFirewallRule','New-NetFirewallRule','Disable-NetFirewallRule','Stop-Service','Start-Service','Set-Service','Invoke-Expression','iex','Set-ExecutionPolicy')
+$forbidden=@('Set-MpPreference','Add-MpPreference','Remove-MpPreference','Set-NetFirewallProfile','Set-NetFirewallRule','New-NetFirewallRule','Disable-NetFirewallRule','Stop-Service','Start-Service','Set-Service','Invoke-Expression','iex','Set-ExecutionPolicy','Enable-BitLocker','Disable-BitLocker','Suspend-BitLocker','Resume-BitLocker','Add-BitLockerKeyProtector','Remove-BitLockerKeyProtector','Clear-Tpm','Initialize-Tpm','Set-TpmOwnerAuth','Set-SecureBootUEFI')
 $scanPaths=@('src','intune','packaging','tools')
 foreach ($folder in $scanPaths) {
     foreach ($file in Get-ChildItem (Join-Path $RepositoryRoot $folder) -Recurse -File | Where-Object { $_.Extension -in @('.ps1','.psm1','.psd1','.json') }) {

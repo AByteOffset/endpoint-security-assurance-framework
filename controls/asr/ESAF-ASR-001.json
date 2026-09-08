@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-ASR-001",
+  "title": "ASR effective-state assessment",
+  "description": "Read-only local assessment: ASR effective-state assessment.",
+  "category": "asr",
+  "severity": "informational",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": false,
+  "expected": {
+    "state": "Assessed"
+  },
+  "evidenceProvider": "ASRAssessment",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the effective local state and assigned organizational policy. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/defender-endpoint/attack-surface-reduction-rules-reference"
+  ]
+}
