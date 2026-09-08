@@ -1,6 +1,6 @@
 # Milestone 3 live validation status
 
-New 0.2.0 / 1.1.0 controls are NOT live-validated. Abhijeet must use [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) on DESKTOP-GFRP15O for the complete fourteen-control comparison and real Intune recertification. The checklist below is historical foundation procedure; its successful results are not evidence for new controls.
+Milestone 3 engine 0.2.0 / Corporate-W11 1.1.0 was owner-validated on `DESKTOP-GFRP15O` on 2026-09-08. The accurate endpoint result was FAIL because BitLocker was off and Secure Boot was disabled; Intune consequently reported the device Not compliant. See [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) and [VALIDATION_REPORT.md](VALIDATION_REPORT.md). The checklist below remains the historical foundation procedure.
 
 # First safe live lab test - before Intune packaging
 

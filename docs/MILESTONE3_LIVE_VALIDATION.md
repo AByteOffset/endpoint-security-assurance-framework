@@ -1,42 +1,49 @@
 # Milestone 3: DESKTOP-GFRP15O live validation and Intune recertification
 
-Status: prepared only. Abhijeet must execute and record results. The nine new controls have no live validation yet. Keep the existing ESAF one-device pilot app and group; never assign All Users/All Devices. Keep Windows 11 x64/SYSTEM behavior and the exact install command from INTUNE_PILOT_GUIDE.md. Coordinate any compliance grace/Conditional Access implications with the owner. Do not weaken controls to force a PASS or manufacture negative cases.
+Status: completed successfully on 2026-09-08 using real endpoint state. “Successfully” means the deployment, certification, evidence, and Intune reporting chain behaved correctly. The endpoint certification result was `FAIL` because two required high-severity protections did not meet Corporate-W11 1.1.0.
 
-1. Preserve the existing protected 0.1.1 / Corporate-W11 1.0.0 result, registry summary, old Run ID and timestamp on DESKTOP-GFRP15O. Do not overwrite it with a manual 0.2.0 run before proving old-version detection.
-2. Check out feature/expanded-security-controls and run the full test suite. Build reviewed deterministic staging on a non-synced path with `packaging/Build-ESAFPackage.ps1 -OutputRoot C:\ESAFBuild`. Verify manifest engine 0.2.0, baseline 1.1.0 and fourteen control files. Use the approved process-only unsigned pilot shell; no persistent execution-policy changes. Sign before hashing if using signed release scripts.
-3. Use the approved external Microsoft Content Prep Tool to produce .intunewin. Update the existing pilot Win32 app content and its custom detection script together. Keep install behavior System, x64, signature policy for this approved unsigned pilot, and assignments limited to the same single device.
-4. Before deployment, run the new detection script in a separate native PowerShell process against the old installation. Expect exit 1 and no installed stdout. Retain this evidence, then verify IME also reports the old 0.1.1 / 1.0.0 versions as not current. Do not alter installed files merely to obtain this result.
-5. Let Intune perform the required 0.2.0 / 1.1.0 upgrade. Confirm app installation status, native SYSTEM invocation, installation exit code and IME logs. An overall security FAIL/REVIEW is still completed installation if publication succeeded; do not confuse app success with security PASS.
-6. Capture the new result's engine, baseline, startedAt/completedAt and Run ID. Prove they differ from the old run and that registry, result and evidence refer to the same new run. Verify old history remains. If installation fails, inspect the protected `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json` locally as administrator; never copy secrets or full environment dumps into PR comments.
-7. Compare every new control with the actual local evidence using the read-only selections below. Preserve safe summaries and explain any mismatch; do not change endpoint protection to make the result green. Existing five controls must still agree with the previously used read-only comparison procedure.
-8. Run installed `Test-ESAFInstallation.ps1` and, in the approved SYSTEM context, `Test-ESAFSystemContext.ps1`. Check all verifier fields, new Run ID, Program Files/ESAF and ProgramData/ESAF owner/ACLs (SYSTEM + Administrators FullControl only). No new privilege launcher is bundled.
-9. Upload current Custom Compliance discovery to the existing pilot policy, with logged-on credentials No and native 64-bit host. Discovery must read the new result, not trigger a new validation. Locally compare ESAFStatus, versions, Run ID and freshness with result.json. Review the unchanged single ESAFStatus=PASS rule.
-10. Wait for normal Intune evaluation and record the portal setting from the existing policy. PASS should satisfy the rule; REVIEW/FAIL/PENDING must not. Retain the local-to-portal comparison and elapsed timing. Report evidence to update VALIDATION_REPORT.md; do not claim completion in advance or merge automatically.
+## Completed recertification
 
-Use an approved elevated 64-bit Windows PowerShell 5.1 shell. For unsigned pilot scripts, launch it with `powershell.exe -NoProfile -ExecutionPolicy Bypass`. Read-only comparisons (do not run setters):
+The existing one-device Win32 application was updated in place from engine 0.1.1 / Corporate-W11 1.0.0 to engine 0.2.0 / Corporate-W11 1.1.0. Assignment remained limited to `MDE-LAB-DEVICES`. Before upgrade, current detection returned exit 1 against the old installed versions, proving version-aware recertification was required. No periodic reinstall mechanism was added.
 
-```powershell
-Get-MpPreference | Select-Object MAPSReporting
-Get-MpComputerStatus | Select-Object AntivirusSignatureLastUpdated,IsTamperProtected
-Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name,Enabled
-$osDrive=(Get-CimInstance Win32_OperatingSystem).SystemDrive
-Get-BitLockerVolume -MountPoint $osDrive | Select-Object VolumeStatus,ProtectionStatus
-Get-Tpm | Select-Object TpmPresent,TpmReady
-Confirm-SecureBootUEFI
-# Never output all MpPreference fields, BitLocker key protectors or TPM OwnerAuth.
-$p=Get-MpPreference
-foreach($name in 'ExclusionPath','ExclusionProcess','ExclusionExtension','ExclusionIpAddress') {
-    [pscustomobject]@{Category=$name;VisibleCount=@($p.$name | Where-Object { $null -ne $_ -and -not [string]::IsNullOrWhiteSpace([string]$_) }).Count}
-}
-$p | Select-Object AttackSurfaceReductionRules_Ids,AttackSurfaceReductionRules_Actions
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\Program Files\ESAF\tools\Test-ESAFInstallation.ps1'
-$r=Get-Content C:\ProgramData\ESAF\result.json -Raw | ConvertFrom-Json
-$r | Select-Object engineVersion,baseline,runId,startedAt,completedAt,status,summary
-$r.controls | Select-Object id,expected,observed,status,reason,errorCategory
+The previous result was Run ID `ESAF-20260908-4180E576390BD031F3893333FE968A80`, SHA-256 `C89D79664A8E38711397C8A0BBCD2A2EAB29EB5A36897C26D094D1D852DFAE21`. Intune deployed the update as installed and ESAF published Run ID `ESAF-20260908-0DED50AE5202FD2855607798E05B80E4` at `2026-09-08T21:42:18.9242558Z`.
+
+## Endpoint result
+
+ESAF returned overall `FAIL`: 12 PASS, 2 FAIL, 0 REVIEW, 0 PENDING, 0 ERROR, 0 critical failures, and 2 high failures.
+
+| Control | Expected | Observed | Status | Independent validation |
+| --- | --- | --- | --- | --- |
+| ESAF-DISK-001 | Protected | Off | FAIL | `Get-BitLockerVolume`: C: FullyDecrypted, protection Off, encryption 0% |
+| ESAF-HW-002 | Enabled | Disabled | FAIL | `Confirm-SecureBootUEFI`: False |
+
+These are security gaps on the lab VM, not framework defects. Accuracy of observed state was the acceptance criterion; no endpoint setting was weakened or changed to manufacture a result.
+
+Independent checks also confirmed MAPSReporting 2 -> CloudProtection Enabled/PASS; signature timestamp within 72 hours -> Fresh/PASS; IsTamperProtected True -> Enabled/PASS; visible exclusion counts all zero -> Clear/PASS; all firewall profiles True -> Enabled/PASS; TPM present and ready -> Ready/PASS; and ASR inventory collected -> Assessed/PASS.
+
+The installed verifier returned PASS for Engine, Baseline, ResultIntegrity, RegistryConsistency, and StorageAcl. LatestRunId matched the new run and Certification was FAIL. Certification FAIL is a completed security-assurance result and is distinct from installation failure. The Win32 app correctly remained Installed.
+
+History preservation was confirmed for:
+
+- `ESAF-20260907-F4233EC9C04220E8AA463F641F3DD644`
+- `ESAF-20260908-4180E576390BD031F3893333FE968A80`
+- `ESAF-20260908-0DED50AE5202FD2855607798E05B80E4`
+
+## Intune and Company Portal result
+
+Custom Compliance discovery was updated to require engine 0.2.0 / baseline 1.1.0. The rule remained `ESAFStatus = PASS`. Company Portal displayed `Can't access company resources` and `Endpoint assurance requires attention`. Intune ultimately reported Compliant 0, Noncompliant 1, and `DESKTOP-GFRP15O = Not compliant`; the latest observed compliance contact was approximately `09/08/2026 5:50 PM`.
+
+The complete chain is therefore validated:
+
+```text
+Intune Win32 deployment -> ESAF certification -> local evidence -> ESAF FAIL
+-> Custom Compliance -> Intune Noncompliant -> Company Portal enforcement
 ```
 
-For freshness, compare the signature timestamp converted to UTC with the evidence assessment timestamp and shipped 72-hour threshold; do not compare a much later wall clock with the old evidence age. ASR GUID/action mapping and exclusion visibility limitations are documented in CONTROL_MODEL.md. Empty/hidden exclusions and a successful ASR inventory are not proof of policy adequacy. Unsupported hardware/provider errors must be retained and investigated, never coerced to PASS.
+## Reusable evidence procedure
 
-Record separately: automated test totals/commit, manual local comparisons, and actual Intune recertification/portal results. Production rollout, ARM64 and attack blocking are outside this pilot. Existing rollback procedures preserve history; any purge remains explicitly authorized only.
+For later authorized recertification, preserve the prior result/hash, prove old-version detection before replacement, deploy through the same one-device SYSTEM/x64 path, compare all controls with independent read-only Windows commands, run the installed verifier, validate ACLs/history, and wait for portal compliance. Keep automated tests, endpoint evidence, and portal evidence separate. Do not change protection to force PASS and do not publish raw exclusion values, BitLocker protectors, TPM OwnerAuth, credentials, or environment data.
 
-When future live validation is authorized, distinguish optional AV-006/ASR findings from required-control certification: optional REVIEW/ERROR/PENDING may coexist with overall PASS and portal compliance. Retain those findings and summary counts for administrator assessment. They must not be hidden or converted to PASS. Category fields are diagnostic; only overall ESAFStatus gates the existing compliance rule.
+Protected installer diagnostics remain available at `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json` for execution failures. They were not needed to reinterpret this completed certification FAIL as an installation failure.
+
+Production rollout, ARM64, broad device coverage, hidden exclusion discovery, online MAPS effectiveness, universal ASR policy adequacy, and functional attack blocking remain outside this validation. PR #3 may proceed to merge review within the Milestone 3 one-device scope, but must not be merged automatically.
