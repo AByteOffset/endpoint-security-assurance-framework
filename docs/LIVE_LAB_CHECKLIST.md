@@ -1,6 +1,6 @@
 # First safe live lab test - before Intune packaging
 
-Not yet performed on a live MDE endpoint. Use an approved Windows 11 MDE lab client and elevated 64-bit Windows PowerShell 5.1 with organizational signing/execution policy. Do not change security settings, execution policy, services, exclusions or ASR. No EICAR, attacks or active demonstrations. Do not run the installer for this first test.
+The project owner reports successful foundation 0.1.0 live five-control PASS, restricted ACLs and compressed compliance JSON on a Windows 11 MDE lab device. This checklist is retained as the historical manual-assessment procedure; Milestone 2 does not redo that foundation. Use INTUNE_PILOT_GUIDE.md for the new 0.1.1 deployment. No actual Intune SYSTEM/IME or portal compliance success has been claimed. No security settings, EICAR or active demonstrations are part of either milestone.
 
 1. Get the reviewed feature branch and run the mocked tests:
 

@@ -2,7 +2,7 @@
 
 Policy deployment is not proof of endpoint protection. Intune can report a policy delivered and MDE can report onboarding without proving the finished device matches its intended security state. ESAF performs a versioned, repeatable assessment and reports assurance through Intune.
 
-ESAF 0.1.0 is a Windows PowerShell 5.1 module with five read-only controls. It writes local evidence, results, history, an operational log, and a small registry summary. It is not a security product replacement or a permanent agent.
+ESAF 0.1.1 is a Windows PowerShell 5.1 module with five read-only controls. It writes local evidence, results, history, an operational log, and a small registry summary. Milestone 2 adds deterministic Win32 staging, coordinated deployment, strict result consumption and rollback for one approved Intune pilot device. It is not a security product replacement or a permanent agent.
 
 | Layer | Purpose | Foundation support |
 | --- | --- | --- |
@@ -50,8 +50,8 @@ Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPubl
 .\tools\Test-ESAF.ps1
 ```
 
-Safety: no Defender changes, exclusions, ASR changes, firewall changes, remediation, malware, EICAR, Atomic Red Team, arbitrary data-driven commands, endpoint Graph credentials, web server, database or service. Standard 0.1.0 has no active test execution. Only ESAF files, protected storage and its registry summary are written.
+Safety: no Defender changes, exclusions, ASR changes, firewall changes, remediation, malware, EICAR, Atomic Red Team, arbitrary data-driven commands, endpoint Graph credentials, web server, database or service. Standard mode has no active test execution. Only ESAF files, protected storage and its registry summary are written.
 
 Intune deployment uses a required Win32 package in SYSTEM context and lightweight Custom Compliance. Review [deployment and recertification](docs/INTUNE_DEPLOYMENT.md), [control semantics](docs/CONTROL_MODEL.md), [security model](docs/SECURITY_MODEL.md) and [testing](docs/TESTING.md) before a pilot. Intune compliance is binary: only ESAF PASS meets the included rules; REVIEW, FAIL and PENDING remain distinguishable in discovery data but do not satisfy compliance.
 
-Start with the [first safe live lab checklist](docs/LIVE_LAB_CHECKLIST.md) before packaging. PENDING is never security PASS: this foundation requires a later explicit run after convergence. A future Intune-orchestrated bounded retry policy is described in ARCHITECTURE.md; no service or automatic retries are installed. Later milestones include reviewed harmless functional canaries, signed releases, retention controls, approved legacy baselines and central MDE correlation. Foundation PASS establishes only the five reported local states at collection time.
+The owner reports foundation live lab PASS. Next follow the [ONE-device Intune pilot guide](docs/INTUNE_PILOT_GUIDE.md). Build staging with `packaging/Build-ESAFPackage.ps1 -OutputRoot C:\ESAFBuild`, then use an approved external Content Prep Tool. No tenant deployment or .intunewin execution via Intune has been verified yet. PENDING is never security PASS and needs an explicit later run. No automatic retry service is installed. Desired baseline remains Corporate-W11 1.0.0; engine 0.1.1 changes deployment behavior only.

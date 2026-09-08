@@ -5,6 +5,7 @@ function Write-ESAFJson {
     $temporary = $Path + '.tmp'
     try {
         [IO.File]::WriteAllText($temporary, $json, (New-Object Text.UTF8Encoding($false)))
+        $null=Get-Content -LiteralPath $temporary -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
         if (Test-Path -LiteralPath $Path) { [IO.File]::Replace($temporary,$Path,[NullString]::Value) }
         else { [IO.File]::Move($temporary,$Path) }
     } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
