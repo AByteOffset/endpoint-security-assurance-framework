@@ -2,6 +2,56 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'Fixtures.ps1')
     $script:repo=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 }
+Describe 'Installer package-root resolution' {
+    BeforeEach {
+        $script:lab=Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $null=New-Item -ItemType Directory -Path $script:lab
+        $body=Get-Content (Join-Path $script:repo 'intune/package/Install-ESAF.ps1') -Raw
+        $body=$body -replace '(?m)^#Requires -RunAsAdministrator\r?\n',''
+        $body=$body.Replace('param($Record)','param($Record); $Record | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $PSScriptRoot ''captured.json''); return')
+        $script:fixture=Join-Path $script:lab 'Install-ESAF.ps1'
+        $body | Set-Content $script:fixture
+        # Stop after real dot-sourcing and root forwarding, before machine operations.
+        'function Assert-ESAFPackage { param($Root); $Root | Set-Content (Join-Path $PSScriptRoot ''resolved.txt''); throw ''Package-root fixture boundary'' }' | Set-Content (Join-Path $script:lab 'PackageSupport.ps1')
+    }
+    It 'has no parameter default and assigns the script root only in the body' {
+        $tokens=$null;$errors=$null
+        $ast=[Management.Automation.Language.Parser]::ParseFile($script:fixture,[ref]$tokens,[ref]$errors)
+        $parameter=$ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'PackageRoot' }
+        $parameter.DefaultValue | Should -BeNullOrEmpty
+        $ast.EndBlock.Extent.Text | Should -Match ([regex]::Escape('$PackageRoot=$PSScriptRoot'))
+    }
+    It 'resolves omitted root to the script directory and loads package support from a different working directory' {
+        $null=& (Join-Path $PSHOME 'powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $script:fixture
+        $LASTEXITCODE | Should -Be 1
+        (Get-Content (Join-Path $script:lab 'resolved.txt')) | Should -Be $script:lab
+        (Get-Content (Join-Path $script:lab 'captured.json') -Raw | ConvertFrom-Json).stage | Should -Be 'package validation'
+    }
+    It 'honors an explicitly supplied valid alternate root' {
+        $alternate=Join-Path $script:lab 'alternate'
+        $null=New-Item -ItemType Directory -Path $alternate
+        Copy-Item (Join-Path $script:lab 'PackageSupport.ps1') $alternate
+        $null=& (Join-Path $PSHOME 'powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $script:fixture -PackageRoot $alternate
+        $LASTEXITCODE | Should -Be 1
+        (Get-Content (Join-Path $alternate 'resolved.txt')) | Should -Be $alternate
+        (Get-Content (Join-Path $script:lab 'captured.json') -Raw | ConvertFrom-Json).stage | Should -Be 'package validation'
+    }
+    It 'rejects explicitly empty and whitespace roots with the reviewed diagnostic' {
+        $harness=Join-Path $script:lab 'empty.ps1'
+        # Bind inside PowerShell, avoiding native argv empty-string loss.
+        'param($Fixture,[switch]$Whitespace); $value=""; if($Whitespace){$value=" "}; & $Fixture -PackageRoot $value; exit $LASTEXITCODE' | Set-Content $harness
+        foreach($whitespace in @($false,$true)) {
+            $extra=@(); if($whitespace){$extra=@('-Whitespace')}
+            $text=& (Join-Path $PSHOME 'powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $harness -Fixture $script:fixture @extra
+            $LASTEXITCODE | Should -Be 1
+            $text | Should -Be 'ESAF installation, validation or publication failed.'
+            $record=Get-Content (Join-Path $script:lab 'captured.json') -Raw | ConvertFrom-Json
+            $record.stage | Should -Be 'package root resolution'
+            $record.message | Should -Be 'Unable to resolve ESAF package root.'
+            Test-Path (Join-Path $script:lab 'resolved.txt') | Should -BeFalse
+        }
+    }
+}
 Describe 'Version-aware Intune detection' {
     BeforeEach {
         $script:install=Join-Path $TestDrive 'installed'
@@ -109,6 +159,7 @@ Describe 'Secure bootstrap installer diagnostics' {
     }
     It 'records each required stage before its corresponding operation' {
         $expected=[ordered]@{
+            'package root resolution'='if (-not $PSBoundParameters.ContainsKey(''PackageRoot''))';
             'architecture check'='if (-not [Environment]::Is64BitProcess)';
             'package support load'=". (Join-Path `$PackageRoot 'PackageSupport.ps1')";
             'package validation'='$manifest=Assert-ESAFPackage';

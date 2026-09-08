@@ -6,7 +6,7 @@
 
 ## Newly verified
 
-- Complete Windows PowerShell 5.1 suite: 71 passed, 0 failed/skipped/inconclusive.
+- Complete Windows PowerShell 5.1 suite: 75 passed, 0 failed/skipped/inconclusive.
 - Existing foundation tests retained and updated to produce complete 0.1.1 fixtures for the stricter shared result contract.
 - Staging and SHA-256 verification, repeatable paths/hashes, tamper/unlisted/traversal rejection and safe staging cleanup.
 - Installer exit separation under mocked boundaries: completed FAIL/PENDING returns 0; runtime failure returns nonzero. Idempotent temporary payload copying and actual installed-module reload remain covered.
@@ -34,3 +34,7 @@ Intune assigned and downloaded the package, detection correctly reported 0.1.1 a
 ## User-reported package version 2 diagnostics
 
 The corrected process-only launcher still exits 1 under SYSTEM before Program Files/ESAF exists. The owner reports the exact IME-extracted package passes manifest validation, single-module import, path checks, directory checks, temporary payload copy with restricted ACLs, and execution-lock acquire/release. These isolate the remaining failure but do not identify its cause. Embedded bootstrap diagnostics now record each installer stage and sanitized failure metadata. Six new tests cover stages, sanitized records, ACL intent, isolated persistence and logging failure; existing installer success/failure coverage remains. ACL persistence tests substitute privileged ACL inspection and do not claim a new live SYSTEM run.
+
+## Package-root resolution correction
+
+The owner reports protected SYSTEM diagnostics identified package support loading as the failing stage, with ParameterBindingValidationException at the Join-Path call. PackageRoot now has no parameter default. The script body resolves an omitted argument from PSScriptRoot, rejects explicitly empty/whitespace values, and normalizes the path before architecture/package checks. The new package root resolution stage and its reviewed safe error message retain existing protected logging and exit behavior. Four added tests cover the parameter AST, omitted root from a different working directory, explicit alternate root, and empty/whitespace rejection in Windows PowerShell 5.1 child processes. Existing installer success/failure tests remain. A rebuilt package and live SYSTEM retry are still required to establish deployment success; engine 0.1.1, baseline 1.0.0, detection and the Intune launch command are unchanged.

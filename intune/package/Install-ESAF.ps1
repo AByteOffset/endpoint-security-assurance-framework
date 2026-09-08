@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
 [CmdletBinding()]
-param([string]$PackageRoot=$PSScriptRoot,[ValidateRange(0,600)][int]$LockTimeoutSeconds=30)
+param([string]$PackageRoot,[ValidateRange(0,600)][int]$LockTimeoutSeconds=30)
 $ErrorActionPreference='Stop'
 # These bootstrap helpers must work even when package support/module loading fails.
 function New-ESAFInstallerDiagnostic {
     param([Management.Automation.ErrorRecord]$Failure,[string]$Stage)
     # Error text can contain arbitrary credentials or command arguments. Retain only
     # reviewed literal messages; preserve type, known error ID and numeric locations.
-    $safeMessages=@('64-bit Windows PowerShell required.','Unexpected installed module.','Invalid execution result.','ESAF execution lock timed out.','Incomplete ESAF payload.','Source and installation paths must be separate.')
+    $safeMessages=@('Unable to resolve ESAF package root.','64-bit Windows PowerShell required.','Unexpected installed module.','Invalid execution result.','ESAF execution lock timed out.','Incomplete ESAF payload.','Source and installation paths must be separate.')
     $message='[Redacted untrusted exception text]'
     if ($Failure.Exception.Message -cin $safeMessages) { $message=$Failure.Exception.Message }
     $id='[Redacted untrusted error ID]'
@@ -71,6 +71,14 @@ function Write-ESAFInstallerDiagnostic {
 
 $executionLock=$null
 try {
+    $stage='package root resolution'
+    if (-not $PSBoundParameters.ContainsKey('PackageRoot')) {
+        $PackageRoot=$PSScriptRoot
+    }
+    if ([string]::IsNullOrWhiteSpace($PackageRoot)) {
+        throw 'Unable to resolve ESAF package root.'
+    }
+    $PackageRoot=[IO.Path]::GetFullPath($PackageRoot)
     $stage='architecture check'
     if (-not [Environment]::Is64BitProcess) { throw '64-bit Windows PowerShell required.' }
     $stage='package support load'
