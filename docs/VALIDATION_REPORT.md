@@ -1,40 +1,46 @@
 # Milestone 2 validation report
 
-## Already verified foundation
+## Automated validation
 
-43 foundation Pester tests passed previously. The project owner reports successful real Windows 11 MDE lab validation of all five controls, overall PASS, ProgramData ACLs limited to SYSTEM/Administrators FullControl, and valid compressed Custom Compliance JSON. These are user-reported live results, not new live tests performed by this agent. They validate foundation 0.1.0, not the new Intune deployment path.
+The complete Windows PowerShell 5.1 Pester suite passes 75 tests, with 0 failures, skips or inconclusive results. Production security scanning passes and the tracked-file secret scan finds no matches. These are development checks, distinct from the owner-reported live Intune evidence below. CI runs the same suite and security scan; consult PR #2 checks for each remote run result.
 
-## Newly verified
+Coverage includes baseline/control validation, evidence normalization, verdict logic, result/registry consistency, protected ACL intent, deterministic staging and SHA-256 integrity rejection, installation success/failure separation, module reload, execution-lock contention/release, atomic publication, detection and compliance semantics, isolated uninstall, sanitized diagnostics, and package-root resolution. Privileged filesystem/registry boundaries are substituted in relevant tests. Mocked tests do not establish actual SYSTEM deployment or portal compliance.
 
-- Complete Windows PowerShell 5.1 suite: 75 passed, 0 failed/skipped/inconclusive.
-- Existing foundation tests retained and updated to produce complete 0.1.1 fixtures for the stricter shared result contract.
-- Staging and SHA-256 verification, repeatable paths/hashes, tamper/unlisted/traversal rejection and safe staging cleanup.
-- Installer exit separation under mocked boundaries: completed FAIL/PENDING returns 0; runtime failure returns nonzero. Idempotent temporary payload copying and actual installed-module reload remain covered.
-- Cross-process mutex contention times out and later acquisition succeeds after release. Framework failure releases ownership. Temporary JSON validation failure preserves the old destination and removes the temporary artifact.
-- Detection accepts completed PASS/FAIL/PENDING, rejects old engine or baseline requirements, validates full registry consistency and never ages out a certificate.
-- Compliance preserves PASS/FAIL/REVIEW/PENDING, validates structure/counters/observations and fails closed on malformed state or unsafe ACLs. Pilot rules require only overall PASS.
-- Uninstall runs against isolated filesystem fixtures, preserves history by default, removes only ESAF data on explicit purge, and preserves neighboring Defender/Intune sentinels. Registry and machine paths are substituted only in tests.
-- Installation verification performs read-only inspection. Production AST scan rejects prohibited Defender/firewall/service-changing commands. Source review found no endpoint credentials or arbitrary data-driven commands.
+## Successful live one-device Intune pilot — 2026-09-08
 
-Staging was built in a non-synced local directory because this workspace's OneDrive ancestry is a reparse path. No Content Prep Tool path was supplied; no .intunewin was generated. Bootstrap/hash manifests provide corruption detection, not cryptographic authenticity. Signature/release trust remains organizational. CI runs this same suite plus the production security scan; consult the Milestone 2 PR checks for the actual remote run result.
+Source: final live validation evidence supplied by the project owner from the Windows 11 MDE lab VM. The development agent did not independently operate the tenant or inspect the VM. This records a completed pilot, separate from the automated suite.
 
-## Not yet verified
+| Evidence | Live result |
+| --- | --- |
+| Device | DESKTOP-GFRP15O |
+| Win32 app | ESAF - Endpoint Security Assurance Framework 0.1.1 - Pilot |
+| Intune app state | Installed |
+| Installation directory | C:\Program Files\ESAF exists |
+| Deployment context | Intune machine/SYSTEM, native 64-bit Windows PowerShell |
+| Engine | 0.1.1 |
+| Baseline | Corporate-W11 1.0.0 |
+| Final Run ID | ESAF-20260908-4180E576390BD031F3893333FE968A80 |
+| Overall ESAF verdict | PASS |
+| Controls | 5 passed; 0 failed, review, pending or errors |
+| Installation verifier | Engine, Baseline, ResultIntegrity, RegistryConsistency, StorageAcl and Certification all PASS |
+| Program Files ACL | C:\Program Files\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
+| ProgramData ACL | C:\ProgramData\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
+| Intune compliance policy | ESAF Endpoint Security Compliance - Pilot |
+| Final portal custom setting | ESAFStatus = Compliant |
 
-- Successful 0.1.1 installation after the process-only launch correction.
-- Successful completion of .intunewin installation through Intune Management Extension.
-- Actual Custom Compliance portal per-setting result.
-- Production rollout, ARM64, or broad endpoint compatibility.
+Local Custom Compliance discovery returned ESAFStatus PASS, MDEAssurance PASS, DefenderAssurance PASS, NetworkAssurance PASS, BaselineVersion 1.0.0, EngineVersion 0.1.1 and CertificationFreshness Fresh. The portal setting is recorded separately: the local discovery result alone was not used to claim Intune compliance.
 
-No Intune groups/apps/assignments/policies were created or changed by this development correction. No new security controls, Graph integration, active tests, remediation or permanent service were added. Engine is 0.1.1; Corporate-W11 baseline stays 1.0.0. Stop at the manual ONE-device pilot described in INTUNE_PILOT_GUIDE.md.
+## Pilot defects fixed and retained hardening
 
-## User-reported one-device pilot failure
+1. The unsigned installer initially exited 1 before creating Program Files/ESAF. The earlier detailed evidence reported persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The launch needed process-only `-ExecutionPolicy Bypass`; the install command and native uninstall wrapper now include it. No Set-ExecutionPolicy call, persistent LocalMachine/CurrentUser change, execution-policy registry value or GPO weakening was added. Production should prefer signed release scripts and normal organizational script-control policy.
+2. After that correction, package version 2 still failed under SYSTEM. Manifest validation, module import, paths, payload directories, temporary payload copy/ACLs and execution-lock acquisition passed isolated live checks. Protected diagnostics identified `package support load`, `System.Management.Automation.ParameterBindingValidationException`, line 77, offset 18, stack line 77 and exit 1 at the Join-Path call. Windows PowerShell 5.1 evaluated the optional PackageRoot default before PSScriptRoot was available. PackageRoot now has no parameter default; the script body resolves an omitted value from PSScriptRoot after binding, rejects explicit empty/whitespace values and normalizes the path. The `package root resolution` diagnostic stage and reviewed safe message remain covered by regression tests.
 
-Intune assigned and downloaded the package, detection correctly reported 0.1.1 absent, and IME launched native 64-bit PowerShell as SYSTEM. Installation exited 1 before Program Files/ESAF was created. Existing ProgramData/ESAF and registry results are old 0.1.0 evidence. The VM reports all persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The unsigned launcher omitted a process-only override. Install guidance and the uninstall wrapper now include -ExecutionPolicy Bypass without persistent policy writes. Three regression checks cover exact documented install commands, the uninstall invocation, and absence of persistent policy-changing code. A live retry remains necessary; successful deployment is not claimed.
+Protected installer diagnostics remain part of the release: `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json`. Records preserve stage, UTC time, exception type, recognized error ID, reviewed safe messages and numeric line information. Unknown text/IDs, source paths, credentials and environment dumps are omitted. SYSTEM/Administrators-only storage, reparse rejection and unique CreateNew files protect the records. Logging failure preserves the original exit 1 and generic stdout. Successful live deployment resolves the earlier failure reports; diagnostics are retained for future failures.
 
-## User-reported package version 2 diagnostics
+## Scope and merge readiness
 
-The corrected process-only launcher still exits 1 under SYSTEM before Program Files/ESAF exists. The owner reports the exact IME-extracted package passes manifest validation, single-module import, path checks, directory checks, temporary payload copy with restricted ACLs, and execution-lock acquire/release. These isolate the remaining failure but do not identify its cause. Embedded bootstrap diagnostics now record each installer stage and sanitized failure metadata. Six new tests cover stages, sanitized records, ACL intent, isolated persistence and logging failure; existing installer success/failure coverage remains. ACL persistence tests substitute privileged ACL inspection and do not claim a new live SYSTEM run.
+Automated checks and the successful one-device Intune installation and portal compliance evidence satisfy Milestone 2 validation. PR #2 is ready for maintainer merge review within this pilot scope; it remains open and must not be merged automatically.
 
-## Package-root resolution correction
+This is not production rollout approval or evidence of broad endpoint/ARM64 compatibility, functional attack blocking, cryptographic attestation or cloud telemetry receipt. Live uninstall/rollback and repeat-install behavior are not claimed by the final evidence; isolated automated tests cover those paths. Local administrators remain outside the attestation boundary. Hash inventories are not signatures. Production signing, wider deployment and additional live scenarios require separate review.
 
-The owner reports protected SYSTEM diagnostics identified package support loading as the failing stage, with ParameterBindingValidationException at the Join-Path call. PackageRoot now has no parameter default. The script body resolves an omitted argument from PSScriptRoot, rejects explicitly empty/whitespace values, and normalizes the path before architecture/package checks. The new package root resolution stage and its reviewed safe error message retain existing protected logging and exit behavior. Four added tests cover the parameter AST, omitted root from a different working directory, explicit alternate root, and empty/whitespace rejection in Windows PowerShell 5.1 child processes. Existing installer success/failure tests remain. A rebuilt package and live SYSTEM retry are still required to establish deployment success; engine 0.1.1, baseline 1.0.0, detection and the Intune launch command are unchanged.
+This final update changes documentation only. Engine 0.1.1, Corporate-W11 1.0.0, verdict logic, detection semantics, deployment behavior and execution-policy handling are unchanged. No tenant changes were performed by this documentation update.
