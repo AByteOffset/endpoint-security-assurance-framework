@@ -150,7 +150,7 @@ $installed=Import-Module (Join-Path $Target 'src/ESAF.psd1') -Force -PassThru
     if ($script:RepositoryRoot -ne $target) { throw 'Source module root leaked.' }
     $b=Get-ESAFBaseline (Join-Path $script:RepositoryRoot 'baselines/Corporate-W11.json')
     $controls=@(Get-ESAFControls $b (Join-Path $script:RepositoryRoot 'controls'))
-    if ($controls.Count -ne 5) { throw 'Installed controls not loaded.' }
+    if ($controls.Count -ne 14) { throw 'Installed controls not loaded.' }
 } $Target
 Write-Output $installed.ModuleBase
 '@ | Set-Content $harness

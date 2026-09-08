@@ -7,8 +7,11 @@ function Get-ESAFControlResult {
         $status = if ($Provisioning) { 'PENDING' } else { 'REVIEW' }
         $reason='Effective state could not be established.'
     }
+    elseif (-not $Control.required -and $Control.evidenceProvider -eq 'DefenderExclusions' -and $Evidence.observed -eq 'Present') { $status='REVIEW'; $reason='Visible exclusions require administrator assessment; no raw values are retained.' }
     elseif ($Evidence.observed -ceq $Control.expected.state) { $status='PASS' }
     else { $status='FAIL'; $reason='Observed state does not match desired state.' }
+    if ($Control.id -in @('ESAF-AV-003','ESAF-AV-004','ESAF-AV-005','ESAF-NET-002','ESAF-DISK-001','ESAF-HW-001','ESAF-HW-002') -and $status -in @('PASS','FAIL')) { $reason='Local '+$Control.evidenceProvider+' reports '+$Evidence.observed+'; required state is '+$Control.expected.state+'. See protected evidence for safe details.' }
+    if ($status -eq 'PASS' -and -not $Control.required) { $reason='Local assessment collected; no universal policy adequacy is asserted.' }
     [pscustomobject]@{ id=$Control.id; category=$Control.category; required=$Control.required; severity=$Control.severity; expected=$Control.expected.state; observed=$Evidence.observed; status=$status; reason=$reason; evidenceProvider=$Control.evidenceProvider; errorCategory=$Evidence.errorCategory; errorMessage=$Evidence.errorMessage; remediationGuidance=$Control.remediationGuidance; functionalStatus='NOT_IMPLEMENTED' }
 }
 

@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "name": "Corporate-W11",
-  "version": "1.0.0",
-  "engineCompatibility": ">= 0.1.0",
+  "version": "1.1.0",
+  "engineCompatibility": ">= 0.2.0",
   "platform": "Windows",
   "minimumBuild": 22000,
   "controls": [
@@ -10,6 +10,16 @@
     "ESAF-MDE-002",
     "ESAF-AV-001",
     "ESAF-AV-002",
-    "ESAF-NET-001"
-  ]
+    "ESAF-NET-001",
+    "ESAF-AV-003",
+    "ESAF-AV-004",
+    "ESAF-AV-005",
+    "ESAF-AV-006",
+    "ESAF-NET-002",
+    "ESAF-DISK-001",
+    "ESAF-HW-001",
+    "ESAF-HW-002",
+    "ESAF-ASR-001"
+  ],
+  "securityIntelligenceMaxAgeHours": 72
 }

@@ -1,3 +1,7 @@
+# Milestone 3 live validation status
+
+New 0.2.0 / 1.1.0 controls are NOT live-validated. Abhijeet must use [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) on DESKTOP-GFRP15O for the complete fourteen-control comparison and real Intune recertification. The checklist below is historical foundation procedure; its successful results are not evidence for new controls.
+
 # First safe live lab test - before Intune packaging
 
 The project owner reports successful foundation 0.1.0 live five-control PASS, restricted ACLs and compressed compliance JSON on a Windows 11 MDE lab device. This checklist is retained as the historical manual-assessment procedure; Milestone 2 does not redo that foundation. Use INTUNE_PILOT_GUIDE.md for the new 0.1.1 deployment. The owner has now reported successful 0.1.1 Intune SYSTEM/IME installation and portal custom compliance; see [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for the final evidence, separate from this historical procedure. No security settings, EICAR or active demonstrations are part of either milestone.

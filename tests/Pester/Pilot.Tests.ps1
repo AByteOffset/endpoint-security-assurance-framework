@@ -12,8 +12,8 @@ Describe 'Deterministic pilot staging' {
     }
     It 'stages only runtime payload and creates verified SHA256 manifest' {
         $m=Assert-ESAFPackage $script:build.stagingPath
-        $m.engineVersion | Should -Be '0.1.1'
-        $m.baseline.version | Should -Be '1.0.0'
+        $m.engineVersion | Should -Be '0.2.0'
+        $m.baseline.version | Should -Be '1.1.0'
         $m.files.Count | Should -BeGreaterThan 20
         @($m.files | Where-Object { $_.path -match '\.git|tests/|Test-ESAF.ps1|artifacts|Pester|Test-ESAFSecurity' }).Count | Should -Be 0
         $script:build.intunewinPath | Should -BeNullOrEmpty
@@ -121,7 +121,7 @@ Describe 'Pilot result contract and read-only adapters' {
         Mock Get-Acl { throw 'no permission' }
         (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -InstallPath $script:root -ResultPath $script:path | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
     }
-    It 'detects PASS and rejects a 0.1.0 certificate with installed 0.1.1' {
+    It 'detects PASS and rejects a 0.1.0 certificate with installed 0.2.0' {
         $global:ESAFTestFixture | ConvertTo-Json -Depth 10 | Set-Content $script:path
         $null=& (Join-Path $script:root 'intune/package/Detect-ESAF.ps1') -InstallPath $script:root -ResultPath $script:path
         $LASTEXITCODE | Should -Be 0

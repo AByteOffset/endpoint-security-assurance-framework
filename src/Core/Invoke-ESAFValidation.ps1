@@ -26,7 +26,7 @@ function Invoke-ESAFValidation {
         $evidence = @(); $results = @()
         foreach ($control in $controls) {
             $applicable = Test-ESAFApplicability $control $baseline $platform
-            if ($applicable) { $item = Get-ESAFEvidence $control.evidenceProvider }
+            if ($applicable) { $item = Get-ESAFEvidence $control.evidenceProvider -Policy $baseline }
             else { $item = [pscustomobject]@{ evidenceProvider=$control.evidenceProvider; observed='Unknown'; status='NotCollected'; errorCategory=$null; errorMessage=$null } }
             $evidence += [pscustomobject]@{ id=$control.id; evidence=$item }
             $results += Get-ESAFControlResult $control $item $applicable ([bool]$Provisioning)

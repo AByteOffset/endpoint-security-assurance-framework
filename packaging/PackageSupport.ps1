@@ -6,7 +6,7 @@ function Assert-ESAFPackage {
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Package reparse points are forbidden.' }
     }
     $manifest=Get-Content -LiteralPath (Join-Path $root 'package-manifest.json') -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-    if ($manifest.schemaVersion -cne '1.0' -or $manifest.engineVersion -cne '0.1.1' -or $manifest.baseline.name -cne 'Corporate-W11' -or $manifest.baseline.version -cne '1.0.0' -or $manifest.entryPoint -cne 'Install-ESAF.ps1' -or $manifest.detectionScript -cne 'Detect-ESAF.ps1') { throw 'Unsupported package metadata.' }
+    if ($manifest.schemaVersion -cne '1.0' -or $manifest.engineVersion -cne '0.2.0' -or $manifest.baseline.name -cne 'Corporate-W11' -or $manifest.baseline.version -cne '1.1.0' -or $manifest.entryPoint -cne 'Install-ESAF.ps1' -or $manifest.detectionScript -cne 'Detect-ESAF.ps1') { throw 'Unsupported package metadata.' }
     $null=[DateTimeOffset]::Parse($manifest.buildTime)
     $required=@('Install-ESAF.ps1','Detect-ESAF.ps1','Uninstall-ESAF.ps1','Uninstall-ESAF.cmd','PackageSupport.ps1','ExecutionLock.ps1','payload/src/ESAF.psd1','payload/src/ESAF.psm1','payload/baselines/Corporate-W11.json','payload/tools/Invoke-ESAF.ps1','payload/src/Utility/ResultContract.ps1')
     $seen=@{}

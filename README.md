@@ -2,12 +2,12 @@
 
 Policy deployment is not proof of endpoint protection. Intune can report a policy delivered and MDE can report onboarding without proving the finished device matches its intended security state. ESAF performs a versioned, repeatable assessment and reports assurance through Intune.
 
-ESAF 0.1.1 is a Windows PowerShell 5.1 module with five read-only controls. It writes local evidence, results, history, an operational log, and a small registry summary. Milestone 2 adds deterministic Win32 staging, coordinated deployment, strict result consumption and rollback for one approved Intune pilot device. It is not a security product replacement or a permanent agent.
+ESAF 0.2.0 is a Windows PowerShell 5.1 module with fourteen read-only controls. It writes local evidence, results, history, an operational log, and a small registry summary. Milestone 3 expands the security baseline while retaining Milestone 2 deterministic staging, SYSTEM deployment, protected diagnostics and strict result consumption. It is not a security product replacement or a permanent agent.
 
-| Layer | Purpose | Foundation support |
+| Layer | Purpose | Current support |
 | --- | --- | --- |
-| Desired state | Versioned organization baseline | Corporate-W11 1.0.0 |
-| Effective local state | What Windows/Defender currently reports | Five providers |
+| Desired state | Versioned organization baseline | Corporate-W11 1.1.0 |
+| Effective local state | What Windows/Defender currently reports | Fourteen providers |
 | Functional validation | Prove a control operates using an approved test | Future; never implied by PASS |
 | MDE cloud observation | Correlate local execution with observed telemetry | Future central verifier |
 
@@ -27,6 +27,15 @@ Intune required Win32 package -> ESAF Runner
 | ESAF-AV-001: Defender Antivirus | Active | Critical |
 | ESAF-AV-002: Real-time protection | Enabled | Critical |
 | ESAF-NET-001: Network Protection | Block | High |
+| ESAF-AV-003: Cloud/MAPS participation | Enabled | High |
+| ESAF-AV-004: Security intelligence | Fresh, at most 72 hours | High |
+| ESAF-AV-005: Tamper Protection | Enabled | Critical |
+| ESAF-AV-006: Visible exclusions | Clear; presence yields REVIEW | Informational, optional |
+| ESAF-NET-002: Firewall profiles | Domain, Private, Public enabled | High |
+| ESAF-DISK-001: OS BitLocker | Fully encrypted, protection on | High |
+| ESAF-HW-001: TPM | Present and ready | High |
+| ESAF-HW-002: Secure Boot | Enabled | High |
+| ESAF-ASR-001: ASR inventory | Assessed; no required rule set | Informational, optional |
 
 Required Critical/High FAIL or ERROR produces overall FAIL. Unknown evidence is REVIEW, or PENDING when explicitly running with `-Provisioning`. A known failure is never hidden by provisioning or a score. Required inapplicable controls produce REVIEW rather than certifying an unsupported device.
 
@@ -37,7 +46,7 @@ Import-Module .\src\ESAF.psd1 -Force
 $result = Invoke-ESAFValidation
 $result | Select-Object runId,status,summary
 # Alternatively, concise console output and execution exit code:
-powershell.exe -NoProfile -File .\tools\Invoke-ESAF.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-ESAF.ps1
 Get-Content C:\ProgramData\ESAF\result.json -Raw | ConvertFrom-Json
 ```
 
@@ -54,4 +63,6 @@ Safety: no Defender changes, exclusions, ASR changes, firewall changes, remediat
 
 Intune deployment uses a required Win32 package in SYSTEM context and lightweight Custom Compliance. Review [deployment and recertification](docs/INTUNE_DEPLOYMENT.md), [control semantics](docs/CONTROL_MODEL.md), [security model](docs/SECURITY_MODEL.md) and [testing](docs/TESTING.md) before a pilot. Intune compliance is binary: only ESAF PASS meets the included rules; REVIEW, FAIL and PENDING remain distinguishable in discovery data but do not satisfy compliance.
 
-The owner reports successful one-device Intune installation and ESAFStatus = Compliant for engine 0.1.1; see the [validation report](docs/VALIDATION_REPORT.md) for automated checks and live evidence. Follow the [ONE-device Intune pilot guide](docs/INTUNE_PILOT_GUIDE.md). Build staging with `packaging/Build-ESAFPackage.ps1 -OutputRoot C:\ESAFBuild`, then use an approved external Content Prep Tool. This validates the one-device pilot only; broader rollout is not approved. PENDING is never security PASS and needs an explicit later run. No automatic retry service is installed. Desired baseline remains Corporate-W11 1.0.0; engine 0.1.1 changes deployment behavior only.
+The owner reports successful one-device Intune installation and ESAFStatus = Compliant for engine 0.1.1; see the [validation report](docs/VALIDATION_REPORT.md) for automated checks and live evidence. Follow the [ONE-device Intune pilot guide](docs/INTUNE_PILOT_GUIDE.md). Build staging with `packaging/Build-ESAFPackage.ps1 -OutputRoot C:\ESAFBuild`, then use an approved external Content Prep Tool. This validates the one-device pilot only; broader rollout is not approved. PENDING is never security PASS and needs an explicit later run. No automatic retry service is installed. Milestone 3 requires engine 0.2.0 / Corporate-W11 1.1.0. The new controls have not been live-validated. Abhijeet must execute the [recertification workflow](docs/MILESTONE3_LIVE_VALIDATION.md) on DESKTOP-GFRP15O; no PASS is preselected.
+
+ASR PASS means the local inventory was successfully assessed, not that a universal ASR protection baseline was met. Visible exclusions produce REVIEW, never required-control FAIL; unknown assessment data also requires review. Overall Custom Compliance still enforces only ESAFStatus=PASS. Details and source references are in [the expanded control model](docs/CONTROL_MODEL.md).

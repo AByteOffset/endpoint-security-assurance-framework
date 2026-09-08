@@ -15,9 +15,9 @@ Describe 'ESAF definitions and verdicts' {
             $cs = @(Get-ESAFControls $b $script:controlFolder)
             $e = [pscustomobject]@{observed='Onboarded';status='Collected';errorCategory=$null;errorMessage=$null}
         }
-        It 'loads a versioned baseline and five approved controls' {
-            $b.version | Should -Be '1.0.0'
-            $cs.Count | Should -Be 5
+        It 'loads a versioned baseline and fourteen approved controls' {
+            $b.version | Should -Be '1.1.0'
+            $cs.Count | Should -Be 14
         }
         It 'rejects malformed JSON' {
             '{broken' | Set-Content (Join-Path $TestDrive 'bad.json')
@@ -168,7 +168,7 @@ Describe 'Reporting and full mocked validation' {
             Mock Set-ESAFRegistrySummary {}
             Mock Get-ESAFEvidence {
                 param($Provider)
-                $values=@{MDEOnboardingState='Onboarded';MDESensorService='Running';DefenderAntivirus='Active';RealTimeProtection='Enabled';NetworkProtection='Block'}
+                $values=@{MDEOnboardingState='Onboarded';MDESensorService='Running';DefenderAntivirus='Active';RealTimeProtection='Enabled';NetworkProtection='Block';CloudProtection='Enabled';SecurityIntelligence='Fresh';TamperProtection='Enabled';DefenderExclusions='Clear';WindowsFirewall='Enabled';BitLockerOS='Protected';TPMReadiness='Ready';SecureBoot='Enabled';ASRAssessment='Assessed'}
                 [pscustomobject]@{evidenceProvider=$Provider;observed=$values[$Provider];status='Collected';errorCategory=$null;errorMessage=$null}
             }
         }
@@ -191,7 +191,7 @@ Describe 'Reporting and full mocked validation' {
             Mock Get-ESAFEvidence { [pscustomobject]@{observed='Error';status='ERROR';errorCategory='CollectionFailed';errorMessage='Sanitized'} } -ParameterFilter { $Provider -eq 'MDEOnboardingState' }
             $r=Invoke-ESAFValidation -OutputPath (Join-Path $TestDrive 'error-run')
             $r.status | Should -Be FAIL
-            $r.summary.passed | Should -Be 4
+            $r.summary.passed | Should -Be 13
             $r.summary.errors | Should -Be 1
         }
         It 'surfaces report publication failures as execution failures' {
@@ -206,7 +206,7 @@ Describe 'Registry summary schema' {
         It 'writes only the eight small registry summary values' {
             Mock New-Item {}
             Mock New-ItemProperty {}
-            $r=[pscustomobject]@{engineVersion='0.1.0';baseline=@{name='Corporate-W11';version='1.0.0'};completedAt='2026-09-07T00:00:00Z';runId='test';status='PASS';summary=@{criticalFailures=0;highFailures=0}}
+            $r=[pscustomobject]@{engineVersion='0.1.0';baseline=@{name='Corporate-W11';version='1.1.0'};completedAt='2026-09-07T00:00:00Z';runId='test';status='PASS';summary=@{criticalFailures=0;highFailures=0}}
             Set-ESAFRegistrySummary $r
             Should -Invoke New-ItemProperty -Times 8 -Exactly
             Should -Invoke New-ItemProperty -Times 0 -ParameterFilter { $Name -notin @('EngineVersion','BaselineName','BaselineVersion','LastRun','LastRunId','Status','CriticalFailures','HighFailures') }

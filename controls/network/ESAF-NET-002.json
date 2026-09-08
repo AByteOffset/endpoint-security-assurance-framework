@@ -1,0 +1,22 @@
+{
+  "id": "ESAF-NET-002",
+  "title": "Windows Firewall enabled",
+  "description": "Read-only local assessment: Windows Firewall enabled.",
+  "category": "network",
+  "severity": "high",
+  "profiles": [
+    "Corporate-W11"
+  ],
+  "required": true,
+  "expected": {
+    "state": "Enabled"
+  },
+  "evidenceProvider": "WindowsFirewall",
+  "functionalTest": {
+    "supported": false
+  },
+  "remediationGuidance": "Have the endpoint security administrator review the effective local state and assigned organizational policy. ESAF performs no remediation.",
+  "references": [
+    "https://learn.microsoft.com/en-us/powershell/module/netsecurity/get-netfirewallprofile"
+  ]
+}

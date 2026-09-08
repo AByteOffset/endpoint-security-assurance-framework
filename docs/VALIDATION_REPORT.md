@@ -1,46 +1,26 @@
-# Milestone 2 validation report
+# Milestone 3 validation report
 
-## Automated validation
+## Automated coverage
 
-The complete Windows PowerShell 5.1 Pester suite passes 75 tests, with 0 failures, skips or inconclusive results. Production security scanning passes and the tracked-file secret scan finds no matches. These are development checks, distinct from the owner-reported live Intune evidence below. CI runs the same suite and security scan; consult PR #2 checks for each remote run result.
+The full Windows PowerShell 5.1 Pester suite currently passes 139 tests, with 0 failures, skips or inconclusive results. All 75 Milestone 2 tests remain, with version/count fixtures updated for the expanded baseline. The production security scan passes. Expanded coverage includes every new provider's positive/negative/unavailable/error behavior, timestamp freshness policy, ASR action normalization, redacted exclusions, required versus optional verdicts, complete fourteen-control contracts, physical old-version detection, passive compliance and deterministic staging.
 
-Coverage includes baseline/control validation, evidence normalization, verdict logic, result/registry consistency, protected ACL intent, deterministic staging and SHA-256 integrity rejection, installation success/failure separation, module reload, execution-lock contention/release, atomic publication, detection and compliance semantics, isolated uninstall, sanitized diagnostics, and package-root resolution. Privileged filesystem/registry boundaries are substituted in relevant tests. Mocked tests do not establish actual SYSTEM deployment or portal compliance.
+Tests use mocked Windows security providers and isolated filesystem/registry boundaries. They do not execute live security collection on this development machine or establish Intune recertification success. New ACL persistence checks retain the documented privileged-boundary mocks. The repository workflow runs the same full suite and scan; consult the Milestone 3 PR checks for actual CI status.
 
-## Successful live one-device Intune pilot — 2026-09-08
+## Local lab validation — pending
 
-Source: final live validation evidence supplied by the project owner from the Windows 11 MDE lab VM. The development agent did not independently operate the tenant or inspect the VM. This records a completed pilot, separate from the automated suite.
+Abhijeet has not yet live-validated engine 0.2.0 / Corporate-W11 1.1.0 on DESKTOP-GFRP15O. No new control is claimed as live PASS. Compare normalized states and protected evidence with actual local Windows output using [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md). PASS, REVIEW, FAIL or explicit provider ERROR must reflect the VM, not a desired demo outcome.
 
-| Evidence | Live result |
-| --- | --- |
-| Device | DESKTOP-GFRP15O |
-| Win32 app | ESAF - Endpoint Security Assurance Framework 0.1.1 - Pilot |
-| Intune app state | Installed |
-| Installation directory | C:\Program Files\ESAF exists |
-| Deployment context | Intune machine/SYSTEM, native 64-bit Windows PowerShell |
-| Engine | 0.1.1 |
-| Baseline | Corporate-W11 1.0.0 |
-| Final Run ID | ESAF-20260908-4180E576390BD031F3893333FE968A80 |
-| Overall ESAF verdict | PASS |
-| Controls | 5 passed; 0 failed, review, pending or errors |
-| Installation verifier | Engine, Baseline, ResultIntegrity, RegistryConsistency, StorageAcl and Certification all PASS |
-| Program Files ACL | C:\Program Files\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
-| ProgramData ACL | C:\ProgramData\ESAF: SYSTEM + BUILTIN\Administrators FullControl only |
-| Intune compliance policy | ESAF Endpoint Security Compliance - Pilot |
-| Final portal custom setting | ESAFStatus = Compliant |
+The owner previously proved the five-control engine 0.1.1 / baseline 1.0.0 pipeline: Installed, all verifier checks PASS, restricted ACLs and Intune ESAFStatus Compliant on DESKTOP-GFRP15O, Run ID ESAF-20260908-4180E576390BD031F3893333FE968A80. That historical evidence is preserved in [MILESTONE2_VALIDATION_REPORT.md](MILESTONE2_VALIDATION_REPORT.md). It does not certify new controls.
 
-Local Custom Compliance discovery returned ESAFStatus PASS, MDEAssurance PASS, DefenderAssurance PASS, NetworkAssurance PASS, BaselineVersion 1.0.0, EngineVersion 0.1.1 and CertificationFreshness Fresh. The portal setting is recorded separately: the local discovery result alone was not used to claim Intune compliance.
+## Real Intune recertification — pending
 
-## Pilot defects fixed and retained hardening
+The approved next validation is the existing one-device Win32 app upgrade from 0.1.1 / 1.0.0 to 0.2.0 / 1.1.0, including old-version detection failure, new SYSTEM run ID/timestamp, all fourteen controls, installed verifier/ACLs and portal compliance. No app, group, assignment or compliance policy was changed by this implementation. No .intunewin or live run is claimed; use the approved external Content Prep Tool after staging. Milestone 3 remains open for review and live validation; do not merge automatically.
 
-1. The unsigned installer initially exited 1 before creating Program Files/ESAF. The earlier detailed evidence reported persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The launch needed process-only `-ExecutionPolicy Bypass`; the install command and native uninstall wrapper now include it. No Set-ExecutionPolicy call, persistent LocalMachine/CurrentUser change, execution-policy registry value or GPO weakening was added. Production should prefer signed release scripts and normal organizational script-control policy.
-2. After that correction, package version 2 still failed under SYSTEM. Manifest validation, module import, paths, payload directories, temporary payload copy/ACLs and execution-lock acquisition passed isolated live checks. Protected diagnostics identified `package support load`, `System.Management.Automation.ParameterBindingValidationException`, line 77, offset 18, stack line 77 and exit 1 at the Join-Path call. Windows PowerShell 5.1 evaluated the optional PackageRoot default before PSScriptRoot was available. PackageRoot now has no parameter default; the script body resolves an omitted value from PSScriptRoot after binding, rejects explicit empty/whitespace values and normalizes the path. The `package root resolution` diagnostic stage and reviewed safe message remain covered by regression tests.
+## Design decisions and limitations
 
-Protected installer diagnostics remain part of the release: `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json`. Records preserve stage, UTC time, exception type, recognized error ID, reviewed safe messages and numeric line information. Unknown text/IDs, source paths, credentials and environment dumps are omitted. SYSTEM/Administrators-only storage, reparse rejection and unique CreateNew files protect the records. Logging failure preserves the original exit 1 and generic stdout. Successful live deployment resolves the earlier failure reports; diagnostics are retained for future failures.
-
-## Scope and merge readiness
-
-Automated checks and the successful one-device Intune installation and portal compliance evidence satisfy Milestone 2 validation. PR #2 is ready for maintainer merge review within this pilot scope; it remains open and must not be merged automatically.
-
-This is not production rollout approval or evidence of broad endpoint/ARM64 compatibility, functional attack blocking, cryptographic attestation or cloud telemetry receipt. Live uninstall/rollback and repeat-install behavior are not claimed by the final evidence; isolated automated tests cover those paths. Local administrators remain outside the attestation boundary. Hash inventories are not signatures. Production signing, wider deployment and additional live scenarios require separate review.
-
-This final update changes documentation only. Engine 0.1.1, Corporate-W11 1.0.0, verdict logic, detection semantics, deployment behavior and execution-policy handling are unchanged. No tenant changes were performed by this documentation update.
+- Signature freshness is baseline-driven: securityIntelligenceMaxAgeHours=72, validated integer range 1-720. Changing requirements requires another baseline-version decision. Future timestamps are Unknown; absent timestamps are Missing; malformed/provider errors never PASS.
+- All Domain/Private/Public firewall profiles are required, even when currently inactive. BitLocker encryption in progress or suspended protection fails this protection requirement; no state changes are performed.
+- Secure Boot unsupported/non-UEFI can appear as Unsupported or ERROR depending on Windows exception type. Missing modules/permissions are explicit errors, never PASS. TPM readiness is local only.
+- ASR Assessed/PASS means inventory collected, including an empty inventory; no universal ASR rule set is certified. Visible exclusions yield optional REVIEW. Such assessment observations never force overall FAIL, but overall REVIEW does not meet the unchanged Intune PASS rule.
+- Local preference visibility is not online effectiveness testing. Hidden exclusions cannot be ruled out. Recovery keys, TPM owner authorization and raw exclusion values are omitted. No Graph identity, cloud verification, EICAR, Atomic tests, attack simulation, remediation or permanent agent was added.
+- Engine/baseline detection is 0.2.0 / 1.1.0; result schema remains 1.0. The original five protective expectations, aggregate verdict algorithm, process-only Bypass, script-body root resolution, protected diagnostics, mutex, ACLs, hashes, atomic files and registry commit marker remain. No periodic reinstall/recertification service is added.
