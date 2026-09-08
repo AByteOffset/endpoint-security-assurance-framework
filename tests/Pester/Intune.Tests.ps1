@@ -57,6 +57,9 @@ Describe 'Installer execution contract' {
         # The fixture omits Requires-RunAsAdministrator because it never performs machine writes.
         $body=Get-Content (Join-Path $script:repo 'intune/package/Install-ESAF.ps1') -Raw
         $body=$body -replace '(?m)^#Requires -RunAsAdministrator\r?\n',''
+        $body=$body.Replace('[Environment]::GetFolderPath(''CommonApplicationData'')','$PSScriptRoot')
+        # Replace only protected storage for this unprivileged installer harness.
+        $body=$body.Replace('param($Record)','param($Record); $Record | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $PSScriptRoot ''captured.json''); return')
         $fixture=Join-Path $TestDrive 'installer.ps1'
         $body | Set-Content $fixture
         'function Assert-ESAFPackage { [pscustomobject]@{engineVersion="0.1.1"} }' | Set-Content (Join-Path $TestDrive 'PackageSupport.ps1')
@@ -89,5 +92,94 @@ exit $LASTEXITCODE
         $text | Should -Match 'security verdict=PENDING'
         $null=& $hostPath -NoProfile -ExecutionPolicy Bypass -File $harness -Fixture $fixture -FailExecution
         $LASTEXITCODE | Should -Be 1
+        (Get-Content (Join-Path $TestDrive 'captured.json') -Raw | ConvertFrom-Json).stage | Should -Be 'ESAF validation'
+    }
+}
+
+Describe 'Secure bootstrap installer diagnostics' {
+    BeforeAll {
+        $script:installer=Get-Content (Join-Path $script:repo 'intune/package/Install-ESAF.ps1') -Raw
+        $tokens=$null;$errors=$null
+        $ast=[Management.Automation.Language.Parser]::ParseInput($script:installer,[ref]$tokens,[ref]$errors)
+        $functions=@($ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst]},$false))
+        foreach ($function in $functions) {
+            $source=$function.Extent.Text.Replace('[Environment]::GetFolderPath(''CommonApplicationData'')','$TestDrive')
+            . ([scriptblock]::Create($source))
+        }
+    }
+    It 'records each required stage before its corresponding operation' {
+        $expected=[ordered]@{
+            'architecture check'='if (-not [Environment]::Is64BitProcess)';
+            'package support load'=". (Join-Path `$PackageRoot 'PackageSupport.ps1')";
+            'package validation'='$manifest=Assert-ESAFPackage';
+            'execution-lock load'=". (Join-Path `$PackageRoot 'ExecutionLock.ps1')";
+            'execution-lock acquire'='$executionLock=Enter-ESAFExecutionLock';
+            'payload module import'='$module=Import-Module';
+            'payload copy'='& $module { param($source,$target)';
+            'uninstall script copy'='Copy-Item -LiteralPath';
+            'installed module import'='$installed=Import-Module';
+            'installed module path verification'='if ([IO.Path]::GetFullPath($installed.ModuleBase)';
+            'ESAF validation'='$r=& $installed';
+            'result validation'='if ($r.status'
+        }
+        foreach ($entry in $expected.GetEnumerator()) {
+            $pattern=[regex]::Escape("`$stage='$($entry.Key)'")+ '\s*'+[regex]::Escape($entry.Value)
+            $script:installer | Should -Match $pattern
+        }
+    }
+    It 'preserves reviewed messages and records UTC type and numeric line metadata' {
+        try { throw 'Unexpected installed module.' } catch { $record=New-ESAFInstallerDiagnostic $_ 'installed module path verification' }
+        $record.message | Should -Be 'Unexpected installed module.'
+        $record.stage | Should -Be 'installed module path verification'
+        $record.exceptionType | Should -Be 'System.Management.Automation.RuntimeException'
+        $record.scriptLineNumber | Should -BeGreaterThan 0
+        $record.timestampUtc | Should -Match 'Z$'
+        $record.exitCode | Should -Be 1
+    }
+    It 'redacts arbitrary secrets in messages error IDs and stack paths without environment dumps' {
+        $secret='unique-sensitive-fixture-value'
+        $exception=New-Object InvalidOperationException("password=$secret Bearer $secret path=C:\private\$secret")
+        $failure=New-Object Management.Automation.ErrorRecord($exception,$secret,[Management.Automation.ErrorCategory]::InvalidOperation,$secret)
+        $record=New-ESAFInstallerDiagnostic $failure 'payload copy'
+        $json=$record | ConvertTo-Json -Depth 4
+        $json | Should -Not -Match $secret
+        $record.message | Should -Be '[Redacted untrusted exception text]'
+        $record.fullyQualifiedErrorId | Should -Be '[Redacted untrusted error ID]'
+        @($record.Keys).Count | Should -Be 9
+        $json | Should -Not -Match 'password|Bearer|private|environment|TargetObject|PositionMessage'
+    }
+    It 'creates only SYSTEM and Administrators inheritable FullControl ACL intent' {
+        $acl=New-ESAFInstallerLogAcl
+        $acl.AreAccessRulesProtected | Should -BeTrue
+        $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value | Should -Be 'S-1-5-32-544'
+        $rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
+        $rules.Count | Should -Be 2
+        foreach($rule in $rules) {
+            $rule.IdentityReference.Value | Should -BeIn @('S-1-5-18','S-1-5-32-544')
+            $rule.FileSystemRights | Should -Be FullControl
+            $rule.AccessControlType | Should -Be Allow
+        }
+    }
+    It 'persists sanitized JSON in a protected unique file' {
+        try { throw 'Unexpected installed module.' } catch { $record=New-ESAFInstallerDiagnostic $_ 'installed module path verification' }
+        # Filesystem writes are real; privileged ACL inspection is a boundary mock.
+        $null=New-Item -ItemType Directory -Path (Join-Path $TestDrive 'ESAF/installer-diagnostics') -Force
+        Mock Get-Acl { New-ESAFInstallerLogAcl }
+        Write-ESAFInstallerDiagnostic $record
+        $file=Get-ChildItem (Join-Path $TestDrive 'ESAF/installer-diagnostics') -Filter 'installer-*.json' | Select-Object -First 1
+        (Get-Content $file.FullName -Raw | ConvertFrom-Json).stage | Should -Be 'installed module path verification'
+        $rules=@((Get-Acl $file.FullName).GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
+        $rules.Count | Should -Be 2
+        foreach($rule in $rules) { $rule.IdentityReference.Value | Should -BeIn @('S-1-5-18','S-1-5-32-544'); $rule.FileSystemRights | Should -Be FullControl }
+    }
+    It 'keeps exit one and generic stdout when diagnostic writing fails' {
+        $body=$script:installer -replace '(?m)^#Requires -RunAsAdministrator\r?\n',''
+        $body=$body.Replace('param($Record)',"param(`$Record)`n throw 'Diagnostic fixture failure'")
+        $fixture=Join-Path $TestDrive 'logging-failure.ps1'
+        $body | Set-Content $fixture
+        # Missing package support fails before any installation operations or lock.
+        $text=& (Join-Path $PSHOME 'powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $fixture -PackageRoot (Join-Path $TestDrive 'missing-package')
+        $LASTEXITCODE | Should -Be 1
+        $text | Should -Be 'ESAF installation, validation or publication failed.'
     }
 }

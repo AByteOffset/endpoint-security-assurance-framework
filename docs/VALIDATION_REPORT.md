@@ -6,7 +6,7 @@
 
 ## Newly verified
 
-- Complete Windows PowerShell 5.1 suite: 65 passed, 0 failed/skipped/inconclusive.
+- Complete Windows PowerShell 5.1 suite: 71 passed, 0 failed/skipped/inconclusive.
 - Existing foundation tests retained and updated to produce complete 0.1.1 fixtures for the stricter shared result contract.
 - Staging and SHA-256 verification, repeatable paths/hashes, tamper/unlisted/traversal rejection and safe staging cleanup.
 - Installer exit separation under mocked boundaries: completed FAIL/PENDING returns 0; runtime failure returns nonzero. Idempotent temporary payload copying and actual installed-module reload remain covered.
@@ -30,3 +30,7 @@ No Intune groups/apps/assignments/policies were created or changed by this devel
 ## User-reported one-device pilot failure
 
 Intune assigned and downloaded the package, detection correctly reported 0.1.1 absent, and IME launched native 64-bit PowerShell as SYSTEM. Installation exited 1 before Program Files/ESAF was created. Existing ProgramData/ESAF and registry results are old 0.1.0 evidence. The VM reports all persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The unsigned launcher omitted a process-only override. Install guidance and the uninstall wrapper now include -ExecutionPolicy Bypass without persistent policy writes. Three regression checks cover exact documented install commands, the uninstall invocation, and absence of persistent policy-changing code. A live retry remains necessary; successful deployment is not claimed.
+
+## User-reported package version 2 diagnostics
+
+The corrected process-only launcher still exits 1 under SYSTEM before Program Files/ESAF exists. The owner reports the exact IME-extracted package passes manifest validation, single-module import, path checks, directory checks, temporary payload copy with restricted ACLs, and execution-lock acquire/release. These isolate the remaining failure but do not identify its cause. Embedded bootstrap diagnostics now record each installer stage and sanitized failure metadata. Six new tests cover stages, sanitized records, ACL intent, isolated persistence and logging failure; existing installer success/failure coverage remains. ACL persistence tests substitute privileged ACL inspection and do not claim a new live SYSTEM run.
