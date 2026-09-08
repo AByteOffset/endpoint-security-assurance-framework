@@ -192,3 +192,30 @@ Describe 'Safe uninstall and rollback' {
         @($names | Where-Object { $_ -match '^(Set|Add|Remove)-Mp|Firewall|^(Stop|Start|Set)-Service$' }).Count | Should -Be 0
     }
 }
+
+Describe 'Process-only pilot execution policy' {
+    It 'documents the exact native Intune install command in both deployment guides' {
+        $expected='%SystemRoot%\Sysnative\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ESAF.ps1'
+        foreach ($path in @('docs/INTUNE_PILOT_GUIDE.md','docs/INTUNE_DEPLOYMENT.md')) {
+            @(Get-Content (Join-Path $script:root $path)) | Should -Contain $expected
+        }
+    }
+    It 'launches uninstall with the process-only override and preserves native selection and exit code' {
+        $lines=@(Get-Content (Join-Path $script:root 'intune/package/Uninstall-ESAF.cmd'))
+        $lines | Should -Contain '"%ESAF_PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0Uninstall-ESAF.ps1"'
+        $lines | Should -Contain 'set "ESAF_PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"'
+        $lines | Should -Contain 'if exist "%SystemRoot%\Sysnative\WindowsPowerShell\v1.0\powershell.exe" set "ESAF_PS=%SystemRoot%\Sysnative\WindowsPowerShell\v1.0\powershell.exe"'
+        $lines | Should -Contain 'exit /b %errorlevel%'
+    }
+    It 'contains no persistent execution-policy changes in runtime or deployment code' {
+        foreach ($folder in @('src','intune','packaging')) {
+            foreach ($file in Get-ChildItem (Join-Path $script:root $folder) -Recurse -File | Where-Object { $_.Extension -in @('.ps1','.psm1','.psd1','.cmd') }) {
+                $content=Get-Content $file.FullName -Raw
+                # Only the process launch option is allowed. Policy cmdlets, registry value
+                # names and policy-store paths fail this conservative source guard.
+                $content | Should -Not -Match '(?i)Set-ExecutionPolicy|\bsecpol\b|EnableScripts|ShellIds|\\Policies\\Microsoft\\Windows\\PowerShell'
+                ($content -replace '(?i)-ExecutionPolicy\s+Bypass','') | Should -Not -Match '(?i)ExecutionPolicy'
+            }
+        }
+    }
+}

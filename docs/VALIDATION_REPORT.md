@@ -6,7 +6,7 @@
 
 ## Newly verified
 
-- Complete Windows PowerShell 5.1 suite: 62 passed, 0 failed/skipped/inconclusive.
+- Complete Windows PowerShell 5.1 suite: 65 passed, 0 failed/skipped/inconclusive.
 - Existing foundation tests retained and updated to produce complete 0.1.1 fixtures for the stricter shared result contract.
 - Staging and SHA-256 verification, repeatable paths/hashes, tamper/unlisted/traversal rejection and safe staging cleanup.
 - Installer exit separation under mocked boundaries: completed FAIL/PENDING returns 0; runtime failure returns nonzero. Idempotent temporary payload copying and actual installed-module reload remain covered.
@@ -20,9 +20,13 @@ Staging was built in a non-synced local directory because this workspace's OneDr
 
 ## Not yet verified
 
-- Real Intune installation in SYSTEM context.
-- Actual .intunewin execution through Intune Management Extension.
+- Successful 0.1.1 installation after the process-only launch correction.
+- Successful completion of .intunewin installation through Intune Management Extension.
 - Actual Custom Compliance portal per-setting result.
 - Production rollout, ARM64, or broad endpoint compatibility.
 
-No Intune groups/apps/assignments/policies were created or changed. No new security controls, Graph integration, active tests, remediation or permanent service were added. Engine is 0.1.1; Corporate-W11 baseline stays 1.0.0. Stop at the manual ONE-device pilot described in INTUNE_PILOT_GUIDE.md.
+No Intune groups/apps/assignments/policies were created or changed by this development correction. No new security controls, Graph integration, active tests, remediation or permanent service were added. Engine is 0.1.1; Corporate-W11 baseline stays 1.0.0. Stop at the manual ONE-device pilot described in INTUNE_PILOT_GUIDE.md.
+
+## User-reported one-device pilot failure
+
+Intune assigned and downloaded the package, detection correctly reported 0.1.1 absent, and IME launched native 64-bit PowerShell as SYSTEM. Installation exited 1 before Program Files/ESAF was created. Existing ProgramData/ESAF and registry results are old 0.1.0 evidence. The VM reports all persistent execution-policy scopes Undefined and effective Windows PowerShell policy Restricted. The unsigned launcher omitted a process-only override. Install guidance and the uninstall wrapper now include -ExecutionPolicy Bypass without persistent policy writes. Three regression checks cover exact documented install commands, the uninstall invocation, and absence of persistent policy-changing code. A live retry remains necessary; successful deployment is not claimed.
