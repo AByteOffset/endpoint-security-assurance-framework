@@ -1,5 +1,11 @@
 # Deployment contract - engine 0.2.0
 
+## Integration scope
+
+Intune Win32 is one supported delivery mechanism for the ESAF local assessor. Microsoft Defender and Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. ESAF independently observes selected effective Windows and platform state. The Custom Compliance artifacts are an optional downstream adapter and a successful one-device proof of concept, not the primary product destination.
+
+Use native Intune compliance when a native Microsoft setting directly represents the requirement. Consider the ESAF adapter only for an explicitly approved assurance requirement that native compliance does not adequately represent. ESAF does not send a direct signal to Entra; Entra Conditional Access may consume Intune compliance when separately configured by the organization.
+
 Use [INTUNE_PILOT_GUIDE.md](INTUNE_PILOT_GUIDE.md) for the exact one-device workflow. No tenant changes are automated.
 
 Build staging first: source-tree direct installer execution is intentionally unsupported. The installer validates manifest/hashes before importing payload code, acquires the shared execution mutex, copies production files to Program Files/ESAF, preserves ProgramData history and invokes the installed module. Engine 0.2.0 expands read-only providers. Corporate-W11 1.1.0 adds seven required and two assessment controls, so both engine and baseline versions change.
@@ -10,7 +16,7 @@ Detection uses the installed protected ResultContract helper, requires exact ins
 
 Uninstall coordinates on the same mutex, removes the fixed Program Files/ESAF directory and ESAF summary, and preserves evidence by default. Explicit -Purge removes ProgramData/ESAF too. Remove compliance and Required assignments before rollback. The CMD wrapper resolves native PowerShell without relying on environment expansion in Intune's uninstall field.
 
-SYSTEM remains the install context proven in Milestone 2; the new 0.2.0 recertification still needs a live run. No active tests, services, cloud identity or remediation are added. PENDING/REVIEW requires explicit subsequent validation; the future bounded orchestration design remains unimplemented.
+SYSTEM installation was proven in Milestone 2, and the 0.2.0 / Corporate-W11 1.1.0 recertification and downstream Intune result were completed successfully in Milestone 3. See [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) and [VALIDATION_REPORT.md](VALIDATION_REPORT.md). No active tests, services, cloud identity or remediation are added. PENDING/REVIEW requires explicit subsequent validation; the future bounded orchestration design remains unimplemented.
 
 The pilot currently uses unsigned PowerShell scripts. `-ExecutionPolicy Bypass` applies only to the launched PowerShell process and does not persistently alter endpoint execution policy. ESAF does not call Set-ExecutionPolicy, modify LocalMachine/CurrentUser policy, create execution-policy registry values, or weaken system/GPO policy. Production should prefer signed release scripts and normal organizational script-control policy.
 
