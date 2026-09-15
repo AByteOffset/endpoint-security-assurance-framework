@@ -1,23 +1,30 @@
 # ESAF - Endpoint Security Assurance Framework
 
-Policy deployment is not proof of endpoint protection. Intune can report a policy delivered and MDE can report onboarding without proving the finished device matches its intended security state. ESAF performs a versioned, repeatable assessment and reports assurance through Intune.
+ESAF is an Endpoint Security Policy Assurance Framework around native Microsoft security controls. Microsoft Defender and Microsoft Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. Microsoft Entra remains the identity and access control plane. ESAF independently observes selected effective Windows and platform state.
 
-ESAF 0.2.0 is a Windows PowerShell 5.1 module with fourteen read-only controls. It writes local evidence, results, history, an operational log, and a small registry summary. Milestone 3 expands the security baseline while retaining Milestone 2 deterministic staging, SYSTEM deployment, protected diagnostics and strict result consumption. It is not a security product replacement or a permanent agent.
+ESAF 0.2.0 independently observes effective Windows endpoint state through fourteen read-only local verification probes. It compares those observations with reviewed ESAF verification criteria and retains protected point-in-time evidence and history for post-deployment assurance and configuration mismatch or drift investigation. ESAF does not replace Microsoft management, compliance, health, attestation or reporting, and it is not a permanent agent.
 
 | Layer | Purpose | Current support |
 | --- | --- | --- |
-| Desired state | Versioned organization baseline | Corporate-W11 1.1.0 |
-| Effective local state | What Windows/Defender currently reports | Fourteen providers |
-| Functional validation | Prove a control operates using an approved test | Future; never implied by PASS |
-| MDE cloud observation | Correlate local execution with observed telemetry | Future central verifier |
+| Approved organizational policy | Defines the security outcome the organization intends | External to ESAF 0.2.0 |
+| Microsoft control plane | Manages, configures and reports applicable native endpoint security controls | Microsoft Defender and Intune |
+| Effective local state | What Windows and Defender report on the endpoint | Fourteen ESAF verification probes |
+| ESAF comparison criteria | Reviewed local criteria used by schema 1.0 | Corporate-W11 1.1.0 |
+| Protected evidence | Point-in-time results and mismatch history | ProgramData history and registry summary |
+| Downstream integration | Optionally consumes an ESAF result | Intune Custom Compliance pilot POC |
 
-Certification records the device, baseline, engine, time, Run ID and evidence. Existing fleet assessment uses the same runner as new-device certification. Recertification follows baseline/engine version changes or an explicit validation request; age alone never fails Win32 detection. Compliance reports CertificationFreshness separately without enforcing an age rule by default. Corporate-W11 applies to Windows client build 22000 or later. Approved legacy clients require a separately reviewed baseline with appropriate constraints; older devices are not silently certified against this baseline.
+Corporate-W11 1.1.0 remains the schema 1.0 `baseline` runtime concept for compatibility. Forward-looking architecture may describe its role as a verification profile, but this milestone does not rename files, fields or schemas. ESAF does not currently ingest authoritative policy intent from Intune, Defender, Microsoft Graph, Entra or Microsoft security baselines.
+
+The existing schema 1.0 term “certification” means a completed ESAF assessment that records the device, baseline, engine, time, Run ID and evidence. ESAF is a privileged local assessor; it does not provide independent cryptographic certification or attestation. Existing fleet assessment and new-device verification use the same runner. Reassessment follows baseline/engine version changes or an explicit validation request; age alone never fails Win32 detection.
 
 ```text
-Intune required Win32 package -> ESAF Runner
-  -> baseline and controls -> read-only evidence -> deterministic verdict
-  -> ProgramData results/history + HKLM summary
-  -> Intune Custom Compliance discovery -> compliance rules
+Approved organizational security policy
+  -> Microsoft Defender / Intune configuration and deployment
+  -> effective Windows endpoint state
+  -> independent ESAF local verification probes
+  -> comparison with reviewed ESAF schema 1.0 criteria
+  -> protected evidence / assessment history
+  -> optional downstream integrations
 ```
 
 | Control | Expected state | Severity |
@@ -37,7 +44,11 @@ Intune required Win32 package -> ESAF Runner
 | ESAF-HW-002: Secure Boot | Enabled | High |
 | ESAF-ASR-001: ASR inventory | Assessed; no required rule set | Informational, optional |
 
+The fourteen controls listed above are local verification probes for Microsoft-managed endpoint security capabilities. They observe; they do not configure Defender, Intune, Windows or Entra. Their presence does not imply that Microsoft lacks native management, compliance, health, attestation or reporting for the same capabilities.
+
 Required Critical/High FAIL or ERROR produces overall FAIL. Unknown evidence is REVIEW, or PENDING when explicitly running with `-Provisioning`. A known failure is never hidden by provisioning or a score. Required inapplicable controls produce REVIEW rather than certifying an unsupported device.
+
+PASS means that the locally observed state satisfied the current ESAF verification criterion. PASS does not prove policy assignment, successful Microsoft policy delivery, functional blocking, cloud telemetry receipt, cryptographic attestation, absence of hidden configuration or native Microsoft compliance.
 
 Run from an elevated **64-bit Windows PowerShell 5.1** prompt on an approved Windows 11 MDE lab device:
 
@@ -61,7 +72,9 @@ Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPubl
 
 Safety: no Defender changes, exclusions, ASR changes, firewall changes, remediation, malware, EICAR, Atomic Red Team, arbitrary data-driven commands, endpoint Graph credentials, web server, database or service. Standard mode has no active test execution. Only ESAF files, protected storage and its registry summary are written.
 
-Intune deployment uses a required Win32 package in SYSTEM context and lightweight Custom Compliance. Review [deployment and recertification](docs/INTUNE_DEPLOYMENT.md), [control semantics](docs/CONTROL_MODEL.md), [security model](docs/SECURITY_MODEL.md) and [testing](docs/TESTING.md) before a pilot. Intune compliance is binary: only ESAF PASS meets the included rules; REVIEW, FAIL and PENDING remain distinguishable in discovery data but do not satisfy compliance.
+Intune Win32 deployment is one delivery option for running ESAF in SYSTEM context. The included Intune Custom Compliance integration is an optional downstream adapter and a successful one-device proof of concept. Organizations should continue using native Intune compliance when a native Microsoft compliance control directly represents the requirement. The ESAF adapter may be appropriate for an explicitly approved assurance requirement that native compliance does not adequately represent. Review [deployment and recertification](docs/INTUNE_DEPLOYMENT.md), [control semantics](docs/CONTROL_MODEL.md), [security model](docs/SECURITY_MODEL.md) and [testing](docs/TESTING.md) before using it. The unchanged pilot rule is binary: only ESAF PASS satisfies it.
+
+ESAF does not send a direct trust signal to Entra and is not a Conditional Access replacement or policy-decision engine. Entra Conditional Access may consume the resulting Intune compliance state for access decisions when an organization explicitly configures that relationship.
 
 The owner has now validated engine 0.2.0 / Corporate-W11 1.1.0 through the complete one-device chain on `DESKTOP-GFRP15O`. Version-aware detection rejected the old 0.1.1 / 1.0.0 certification, Intune installed the update, ESAF accurately returned FAIL for BitLocker off and Secure Boot disabled, and the unchanged Custom Compliance rule reported the device Not compliant in Intune and Company Portal. See the [validation report](docs/VALIDATION_REPORT.md) for the separation between automated, endpoint, and portal evidence. This validates the Milestone 3 one-device scope only; broader rollout is not approved. No automatic retry service is installed.
 

@@ -1,5 +1,7 @@
 # Testing
 
+The test suite validates the current engine 0.2.0, schema 1.0 and Corporate-W11 1.1.0 runtime contracts. Documentation may describe controls as local verification probes and the baseline concept as a future verification profile, but those terms do not change runtime fields or PASS/FAIL behavior. Tests do not establish Microsoft policy assignment, policy delivery, native compliance, cloud telemetry receipt or cryptographic attestation.
+
 `tools/Test-ESAF.ps1` parses every PowerShell source file, parses every repository JSON file, semantically validates the shipped baseline/controls, imports ESAF and runs Pester 5.6.1+. Dependency, output and Git directories are excluded. The Windows Actions job runs these same commands in Windows PowerShell 5.1. No live Defender integration tests run in CI.
 
 ```powershell
@@ -10,7 +12,7 @@ Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPubl
 Tests mock Windows security providers and privileged write boundaries. Coverage includes provider registry extensibility and command rejection, Boolean/enum normalization, ACL/owner construction, repeated payload copying and obsolete-file removal, baseline validation, applicability, verdicts, errors, Run IDs, history, registry, separate freshness and PENDING semantics. Copy tests use actual temporary filesystem operations; ACL tests build real Windows descriptors but mock Set-Acl. TestDrive outputs are cleaned by Pester. No tests require a live Defender/MDE endpoint.
 
 The historical first-live-test checklist is [LIVE_LAB_CHECKLIST.md](LIVE_LAB_CHECKLIST.md), covering raw Windows/MDE state and ACL comparisons. It is retained as a reference, not a requirement to redo the verified foundation.
-The owner subsequently reported successful foundation live validation. Milestone 2 SYSTEM/IME installation and portal compliance were owner-verified. Milestone 3 local/live recertification remains pending; use MILESTONE3_LIVE_VALIDATION.md. Pilot.Tests.ps1 extends the retained foundation tests with staging/hash validation, actual temporary-file rollback, mutex contention, atomic-publication failure handling, strict result contracts and read-only tooling. All security state and machine deletion/registry boundaries are mocked or redirected into TestDrive.
+The owner subsequently reported successful foundation live validation. Milestone 2 SYSTEM/IME installation and portal compliance were owner-verified. Milestone 3 local endpoint recertification and the optional Intune Custom Compliance path were also completed successfully; see [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) and [VALIDATION_REPORT.md](VALIDATION_REPORT.md). Pilot.Tests.ps1 extends the retained foundation tests with staging/hash validation, actual temporary-file rollback, mutex contention, atomic-publication failure handling, strict result contracts and read-only tooling. All security state and machine deletion/registry boundaries are mocked or redirected into TestDrive.
 
 For later assessment and the separate installer lifecycle milestone, elevate 64-bit Windows PowerShell and run:
 

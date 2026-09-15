@@ -1,14 +1,34 @@
 # Architecture
 
+## Product boundary
+
+Microsoft Defender and Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. ESAF independently observes selected effective Windows and platform state. Entra Conditional Access can consume Intune compliance for access decisions. ESAF is a privileged local assessor around those planes; it is not a Microsoft policy deployment system, compliance replacement, attestation authority or Conditional Access decision engine.
+
+The current architecture is:
+
+```text
+Approved organizational security policy
+  -> Microsoft Defender / Intune configuration and deployment
+  -> effective Windows endpoint state
+  -> independent ESAF local verification probes
+  -> comparison with reviewed ESAF schema 1.0 criteria
+  -> protected evidence / assessment history
+  -> optional downstream integrations
+```
+
+Corporate-W11 1.1.0 remains the schema 1.0 `baseline` runtime concept. “Verification profile” is forward-looking architecture terminology only; no runtime field, file or schema is renamed. The baseline is locally authored and reviewed and is not authoritative policy intent imported from a Microsoft service.
+
+A future centrally operated policy-intent integration may ingest Microsoft policy provenance, map assigned policy settings to probes and reconcile approved intent with observed state. That capability is not implemented. It must remain separate from endpoint credentials, remediation, native Microsoft reporting and access-control decisions.
+
 `src/ESAF.psm1` loads the module components. `Core` orchestrates; `Controls` validates baseline/control data and applicability; `Evidence` performs approved read-only collection; `Verdict` compares normalized values and aggregates; `Reporting` publishes artifacts; `Utility` supplies platform detection, safe JSON reads and random IDs. `tools/Invoke-ESAF.ps1` alone formats human console output.
 
-Intune deploys files under Program Files and starts validation as SYSTEM in a 64-bit process. The runner loads all definitions before collection, detects Windows client/build applicability and generates a 128-bit random Run ID with .NET RandomNumberGenerator. All timestamps are UTC ISO-8601. Each applicable control collects only an allowlisted subset of local data. Provider errors are sanitized structured records; other controls continue.
+When selected as the delivery mechanism, Intune deploys files under Program Files and starts validation as SYSTEM in a 64-bit process. The runner loads all definitions before collection, detects Windows client/build applicability and generates a 128-bit random Run ID with .NET RandomNumberGenerator. All timestamps are UTC ISO-8601. Each applicable control collects only an allowlisted subset of local data. Provider errors are sanitized structured records; other controls continue.
 
 Outputs under `C:\ProgramData\ESAF` are `result.json`, `evidence.json`, `ESAF.log`, `history/<RunID>/result.json` and `history/<RunID>/evidence.json`. The Global\ESAF.Execution.v1 named mutex now coordinates installation, validation and uninstall across SYSTEM/admin sessions, with a 30-second default timeout (0-600 configurable) and finally release. Access is limited to SYSTEM/Administrators. Nested validation from an installer is reentrant on the same thread; each acquisition is released. Abandoned ownership is recoverable on the next acquisition. The existing exclusive run.lock file remains a second publication guard. Temporary JSON files are read back and validated before atomic replacement, and removed in finally blocks. There is no automatic history retention deletion.
 
 Latest JSON files are individually replaced atomically. There is no cross-file transaction: history is written first, then evidence, then result, log and registry. Registry publication is the last successful execution step. Consumers require matching Run IDs and versions; a partial publication cannot be reported as a current successful install. Detailed evidence is never stored in the registry. Disk/registry/platform/input failures terminate execution; security provider errors are control results.
 
-The eight registry fields are EngineVersion, BaselineName, BaselineVersion, LastRun, LastRunId, Status, CriticalFailures and HighFailures. The shared installed ResultContract helper validates the fourteen-control 1.1.0 result, expected/observed consistency, counters, timestamps and all eight registry fields. Discovery additionally inspects file ACLs and never collects live security state. A future central verifier can correlate the Run ID without distributing cloud identities to endpoints. See [future cloud design](../cloud-verifier/README.md).
+The eight registry fields are EngineVersion, BaselineName, BaselineVersion, LastRun, LastRunId, Status, CriticalFailures and HighFailures. The shared installed ResultContract helper validates the fourteen-control 1.1.0 result, expected/observed consistency, counters, timestamps and all eight registry fields. Discovery additionally inspects file ACLs and never collects live security state. A future central integration could correlate the Run ID and policy provenance without distributing cloud identities to endpoints. It must complement rather than reproduce native Defender reporting. See [future cloud design](../cloud-verifier/README.md).
 
 Milestone 2 staging uses an explicit production allow-list and hash manifest. Bootstrap integrity/lock helpers are fixed code, never manifest-sourced commands. Installation is idempotent but not transactional: partial program-file copying produces execution failure and requires a retry. The mutex prevents cooperating 0.1.1 and 0.2.0 writers from racing; an older 0.1.0 process does not participate, so stop manual old-version validation before the pilot upgrade. ProgramData history is preserved during update/uninstall unless purge is explicit.
 

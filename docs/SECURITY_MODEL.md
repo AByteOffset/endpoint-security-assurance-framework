@@ -1,5 +1,11 @@
 # Security model
 
+## Control-plane and assurance boundary
+
+Microsoft Defender and Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. ESAF independently observes selected effective Windows and platform state, including platform properties that are not necessarily configured by Defender or Intune. Entra remains the identity and access control plane. ESAF does not configure those systems, replace their native compliance or reporting, or send a direct trust signal to Entra.
+
+The fourteen current controls are local verification probes. Corporate-W11 1.1.0 supplies locally authored schema 1.0 comparison criteria and is not authoritative Microsoft policy intent. A PASS is a local criterion match, not proof of policy assignment, delivery, functional enforcement, cloud receipt, absence of hidden configuration, native compliance or cryptographic attestation. The existing “certification” term denotes a completed schema 1.0 assessment within this limited trust boundary.
+
 ESAF is a privileged local assessor, not an independent attestation authority. SYSTEM/Administrators can alter the engine, baseline, registry or result and can forge assurance. A compromised kernel or administrator is outside the protection supplied by local ACLs. Intune results must not be described as cryptographic attestation.
 
 | Threat | Defense and remaining limitation |

@@ -1,5 +1,11 @@
 # ONE-device Intune pilot and Milestone 3 recertification
 
+## Architecture and integration boundary
+
+This guide records an Intune delivery and Custom Compliance proof of concept for ESAF 0.2.0. Microsoft Defender and Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. ESAF independently observes selected effective Windows and platform state through fourteen local verification probes. The included Custom Compliance adapter is optional. Organizations should prefer native Intune compliance when a native Microsoft compliance setting directly represents the requirement and use the ESAF adapter only for an explicitly approved assurance requirement that native compliance does not adequately represent.
+
+Corporate-W11 1.1.0 is a locally authored, reviewed schema 1.0 comparison baseline; it is not policy intent imported from Microsoft. ESAF does not send a direct trust signal to Entra. Entra Conditional Access can consume Intune compliance only when separately configured by the tenant owner.
+
 Foundation 0.1.0 live MDE/ACL/JSON success was reported by the project owner. The owner has now reported successful 0.1.1 SYSTEM deployment and Intune custom compliance on one device; see [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for final live evidence and automated test results. This guide remains the repeatable pilot procedure. Development has made no tenant changes. Do not broaden deployment or add active tests.
 
 ## Preparation and assignment safety
@@ -127,4 +133,4 @@ Installer failures retain the generic stdout message and exit 1. Secure bootstra
 
 The logger creates protected directories with only SYSTEM and BUILTIN\Administrators FullControl, checks existing owner/ACLs and rejects reparse paths. Unsafe existing storage causes logging to fail closed without changing the installation failure or exposing details on stdout. Unique CreateNew files inherit the protected directory ACL and avoid shared-log append/overwrite races. Logging is best effort and has no dependency on successful payload import or lock acquisition. Rebuild staging and .intunewin to include this installer before the next one-device SYSTEM retry. Read the newest JSON locally as an administrator; do not publish raw endpoint evidence. The owner-reported successful SYSTEM installation and portal compliance are recorded in the validation report; these diagnostics remain part of the hardening outcome.
 
-Milestone 3 is not yet live-validated. Use [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) to update the existing app, prove old-version detection fails, deploy 0.2.0 / 1.1.0 and inspect fourteen controls. Earlier successful 0.1.1 evidence does not certify new requirements. Do not create broad assignments, force the VM to PASS, or change protection to create test cases.
+Milestone 3 live validation completed successfully on the one-device pilot. Version-aware detection rejected the old release, Intune deployed 0.2.0 / Corporate-W11 1.1.0, the fourteen probes accurately reported the endpoint state, and the optional Custom Compliance integration carried the resulting FAIL into Intune. See [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) and [VALIDATION_REPORT.md](VALIDATION_REPORT.md). This evidence does not authorize broad assignment or changes to endpoint protection.
