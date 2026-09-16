@@ -9,6 +9,8 @@ Install-Module Pester -RequiredVersion 5.6.1 -Scope CurrentUser -Force -SkipPubl
 .\tools\Test-ESAF.ps1
 ```
 
+`PolicyAssurance.Tests.ps1` exercises the Milestone 4 central reconciliation with synthetic Graph responses and evidence files. It covers both MATCH directions, both MISMATCH directions, unsupported or non-applicable assignments, schema and identity errors, non-collected evidence, sanitized Graph failure, output-path restrictions, least-privilege scope checks, GET-only production code and absence of tenant identifiers or common credential patterns. Pester and CI never call a live Microsoft tenant; live validation follows the separate procedure in [MILESTONE4_POLICY_INTENT_POC.md](MILESTONE4_POLICY_INTENT_POC.md).
+
 Tests mock Windows security providers and privileged write boundaries. Coverage includes provider registry extensibility and command rejection, Boolean/enum normalization, ACL/owner construction, repeated payload copying and obsolete-file removal, baseline validation, applicability, verdicts, errors, Run IDs, history, registry, separate freshness and PENDING semantics. Copy tests use actual temporary filesystem operations; ACL tests build real Windows descriptors but mock Set-Acl. TestDrive outputs are cleaned by Pester. No tests require a live Defender/MDE endpoint.
 
 The historical first-live-test checklist is [LIVE_LAB_CHECKLIST.md](LIVE_LAB_CHECKLIST.md), covering raw Windows/MDE state and ACL comparisons. It is retained as a reference, not a requirement to redo the verified foundation.

@@ -18,7 +18,7 @@ Approved organizational security policy
 
 Corporate-W11 1.1.0 remains the schema 1.0 `baseline` runtime concept. “Verification profile” is forward-looking architecture terminology only; no runtime field, file or schema is renamed. The baseline is locally authored and reviewed and is not authoritative policy intent imported from a Microsoft service.
 
-A future centrally operated policy-intent integration may ingest Microsoft policy provenance, map assigned policy settings to probes and reconcile approved intent with observed state. That capability is not implemented. It must remain separate from endpoint credentials, remediation, native Microsoft reporting and access-control decisions.
+Milestone 4 implements a deliberately narrow central policy-intent POC. It reads one explicitly selected Intune Defender Antivirus policy through Microsoft Graph, validates one AllowRealtimeMonitoring setting and supported group assignment, and reconciles that intent with `ESAF-AV-002` in a supplied evidence file. This separate reconciliation contract does not change schema 1.0 or the endpoint verdict. It remains separate from endpoint credentials, remediation, native Microsoft reporting and access-control decisions. See [the Milestone 4 POC contract](MILESTONE4_POLICY_INTENT_POC.md).
 
 `src/ESAF.psm1` loads the module components. `Core` orchestrates; `Controls` validates baseline/control data and applicability; `Evidence` performs approved read-only collection; `Verdict` compares normalized values and aggregates; `Reporting` publishes artifacts; `Utility` supplies platform detection, safe JSON reads and random IDs. `tools/Invoke-ESAF.ps1` alone formats human console output.
 
