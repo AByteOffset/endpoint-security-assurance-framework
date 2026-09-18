@@ -3,6 +3,8 @@
 param([string]$OutputRoot, [string]$ContentPrepToolPath)
 $ErrorActionPreference='Stop'
 $source=Split-Path $PSScriptRoot -Parent
+$moduleManifest=Test-ModuleManifest (Join-Path $source 'src/ESAF.psd1') -ErrorAction Stop
+$engineVersion=$moduleManifest.Version.ToString()
 if (-not $OutputRoot) { $OutputRoot=Join-Path $source 'artifacts' }
 $output=[IO.Path]::GetFullPath($OutputRoot).TrimEnd('\')
 $stage=Join-Path $output 'ESAF-Package'
@@ -44,7 +46,7 @@ foreach ($file in Get-ChildItem $stage -Recurse -File) {
 }
 & $module { param($stage) $b=Get-ESAFBaseline (Join-Path $stage 'payload/baselines/Corporate-W11.json'); $null=@(Get-ESAFControls $b (Join-Path $stage 'payload/controls')) } $stage
 $files=@(Get-ChildItem $stage -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{path=$_.FullName.Substring($stage.Length+1).Replace('\','/');sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash} })
-$manifest=[ordered]@{schemaVersion='1.0';engineVersion='0.2.0';baseline=@{name='Corporate-W11';version='1.1.0'};buildTime=[DateTime]::UtcNow.ToString('o');entryPoint='Install-ESAF.ps1';detectionScript='Detect-ESAF.ps1';files=$files}
+$manifest=[ordered]@{schemaVersion='1.0';engineVersion=$engineVersion;baseline=@{name='Corporate-W11';version='1.1.0'};buildTime=[DateTime]::UtcNow.ToString('o');entryPoint='Install-ESAF.ps1';detectionScript='Detect-ESAF.ps1';files=$files}
 $manifest | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $stage 'package-manifest.json') -Encoding UTF8
 $null=Assert-ESAFPackage $stage
 } catch {

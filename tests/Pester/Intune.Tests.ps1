@@ -68,6 +68,9 @@ Describe 'Version-aware Intune detection' {
         $script:data | ConvertTo-Json -Depth 10 | Set-Content $script:path
         Mock Get-ItemProperty { New-ESAFTestRegistry $global:ESAFTestFixture }
     }
+    It 'defaults detection to engine 0.3.0' {
+        (Get-Content (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -Raw) | Should -Match "RequiredEngineVersion='0\.3\.0'"
+    }
     It 'detects a successful installation despite security FAIL' {
         $text=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path
         $LASTEXITCODE | Should -Be 0
@@ -85,7 +88,7 @@ Describe 'Version-aware Intune detection' {
         $text=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path -RequiredBaselineVersion '1.2.0'
         $LASTEXITCODE | Should -Be 1
         $text | Should -BeNullOrEmpty
-        $null=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path -RequiredEngineVersion '0.3.0'
+        $null=& (Join-Path $script:repo 'intune/package/Detect-ESAF.ps1') -InstallPath $script:install -ResultPath $script:path -RequiredEngineVersion '0.4.0'
         $LASTEXITCODE | Should -Be 1
     }
     It 'accepts old certificates but rejects incomplete certificates' {
@@ -112,7 +115,7 @@ Describe 'Installer execution contract' {
         $body=$body.Replace('param($Record)','param($Record); $Record | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $PSScriptRoot ''captured.json''); return')
         $fixture=Join-Path $TestDrive 'installer.ps1'
         $body | Set-Content $fixture
-        'function Assert-ESAFPackage { [pscustomobject]@{engineVersion="0.2.0"} }' | Set-Content (Join-Path $TestDrive 'PackageSupport.ps1')
+        'function Assert-ESAFPackage { [pscustomobject]@{engineVersion="0.3.0"} }' | Set-Content (Join-Path $TestDrive 'PackageSupport.ps1')
         'function Enter-ESAFExecutionLock { [pscustomobject]@{} }; function Exit-ESAFExecutionLock {}' | Set-Content (Join-Path $TestDrive 'ExecutionLock.ps1')
         $harness=Join-Path $TestDrive 'harness.ps1'
         @'

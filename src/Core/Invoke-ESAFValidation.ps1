@@ -40,6 +40,14 @@ function Invoke-ESAFValidation {
         }
         $bundle = [pscustomobject]@{ schemaVersion='1.0'; runId=$runId; device=$env:COMPUTERNAME; controls=$evidence }
         Write-ESAFReport $result $bundle $OutputPath
+        $supportStatus='Failed';$transportStatus='NotAttempted'
+        try {
+            $support=Export-ESAFSupportEvidence -EvidencePath (Join-Path $OutputPath ('history/'+$runId+'/evidence.json')) -SupportPath (Join-Path $OutputPath 'support/latest-assurance.json') -IntuneLogDirectory (Join-Path $env:ProgramData 'Microsoft\IntuneManagementExtension\Logs')
+            $supportStatus='Complete';$transportStatus=$support.intuneTransportStatus
+        } catch { Write-Warning 'ESAF support evidence export failed; canonical assessment remains valid.' }
+        try {
+            Add-Content -LiteralPath (Join-Path $OutputPath 'ESAF.log') -Value ('{0} Run={1} SupportExport={2} IntuneTransport={3}' -f [DateTime]::UtcNow.ToString('o'),$runId,$supportStatus,$transportStatus) -Encoding UTF8 -ErrorAction Stop
+        } catch { Write-Warning 'ESAF support export status could not be recorded.' }
         $result
     } finally { if ($null -ne $lock) { $lock.Dispose() } }
     } finally { Exit-ESAFExecutionLock $executionLock }

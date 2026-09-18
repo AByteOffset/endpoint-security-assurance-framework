@@ -2,7 +2,7 @@
 
 ## Architecture and integration boundary
 
-This guide records an Intune delivery and Custom Compliance proof of concept for ESAF 0.2.0. Microsoft Defender and Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. ESAF independently observes selected effective Windows and platform state through fourteen local verification probes. The included Custom Compliance adapter is optional. Organizations should prefer native Intune compliance when a native Microsoft compliance setting directly represents the requirement and use the ESAF adapter only for an explicitly approved assurance requirement that native compliance does not adequately represent.
+This guide records an Intune delivery and Custom Compliance proof of concept for ESAF 0.3.0. Microsoft Defender and Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. ESAF independently observes selected effective Windows and platform state through fourteen local verification probes. The included Custom Compliance adapter is optional. Organizations should prefer native Intune compliance when a native Microsoft compliance setting directly represents the requirement and use the ESAF adapter only for an explicitly approved assurance requirement that native compliance does not adequately represent.
 
 Corporate-W11 1.1.0 is a locally authored, reviewed schema 1.0 comparison baseline; it is not policy intent imported from Microsoft. ESAF does not send a direct trust signal to Entra. Entra Conditional Access can consume Intune compliance only when separately configured by the tenant owner.
 
@@ -45,7 +45,7 @@ Current Microsoft guidance uses Intune admin center > Apps > All Apps > Create, 
 
 | Setting | Pilot value |
 | --- | --- |
-| Name | Update existing ESAF pilot app to 0.2.0 |
+| Name | Update existing ESAF pilot app to 0.3.0 |
 | Publisher | Approved internal publisher / ESAF |
 | Description | Read-only endpoint assurance; security verdict is separate from app install |
 | Installer type | Command line |
@@ -77,7 +77,7 @@ Uninstall-ESAF.cmd
 
 The wrapper chooses Sysnative when available, otherwise System32, then invokes `"%ESAF_PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0Uninstall-ESAF.ps1"`. It avoids relying on environment variable expansion in Intune's uninstall field.
 
-Detection: Use a custom detection script, upload staged Detect-ESAF.ps1, set Run script as 32-bit process on 64-bit clients = No. For this approved unsigned pilot, set Enforce script signature check = No; production signed releases should follow organizational signature policy. Detection uses the installed protected ResultContract helper and requires engine 0.2.0, Corporate-W11 1.1.0, complete result and matching registry summary. Exit 0 with stdout means installed. Completed PASS/REVIEW/FAIL/PENDING all qualify; elapsed age never triggers reinstallation. Missing files or inconsistent versions/state are not detected.
+Detection: Use a custom detection script, upload staged Detect-ESAF.ps1, set Run script as 32-bit process on 64-bit clients = No. For this approved unsigned pilot, set Enforce script signature check = No; production signed releases should follow organizational signature policy. Detection uses the installed protected ResultContract helper and requires engine 0.3.0, Corporate-W11 1.1.0, complete result and matching registry summary. Exit 0 with stdout means installed. Completed PASS/REVIEW/FAIL/PENDING all qualify; elapsed age never triggers reinstallation. A 0.2.0 installation and inconsistent versions/state are not detected.
 
 Review final assignments and count ONE device before saving. Do not assign compliance until app installation and local verification succeed. [Microsoft Win32 configuration](https://learn.microsoft.com/en-us/intune/app-management/deployment/add-win32).
 
@@ -127,7 +127,7 @@ Default uninstall removes Program Files/ESAF and HKLM SOFTWARE/ESAF, preserving 
 
 Stop at this one-device pilot. Wider assignments require owner review of actual IME/SYSTEM and compliance evidence.
 
-After this launch correction, rebuild staging and the .intunewin package so the updated uninstall wrapper and manifest are included. Update the existing one-device app install command and retry only the approved device. Old 0.1.1 / 1.0.0 ProgramData and registry artifacts do not prove 0.2.0 / 1.1.0 recertification. Confirm Program Files/ESAF, installed version and a new matching Run ID before assigning compliance.
+For engine 0.3.0, rebuild staging and the `.intunewin` package so the support exporter, version-aware detection, compliance discovery and manifest are included. Update the existing one-device app and retry only the approved device. Existing 0.2.0 / 1.1.0 ProgramData and registry artifacts do not prove 0.3.0 recertification. Confirm Program Files/ESAF, installed version, a new matching Run ID and the sanitized support artifact before requesting diagnostics or evaluating compliance.
 
 Installer failures retain the generic stdout message and exit 1. Secure bootstrap diagnostics are written as one JSON record per failure to `C:\ProgramData\ESAF\installer-diagnostics\installer-<guid>.json` (CommonApplicationData/ESAF on a relocated system). The bootstrap logger is embedded in Install-ESAF.ps1 so package/module load failures can be recorded. Records contain UTC time, stage, exception type, recognized PowerShell error ID, a reviewed literal message or redaction marker, numeric script/stack line locations, and exit code. Arbitrary exception text, unknown error IDs, paths, source lines, target objects, credentials and environment dumps are omitted. Unknown messages are intentionally redacted; stage/type/line information remains available for diagnosis.
 
