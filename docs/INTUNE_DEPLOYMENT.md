@@ -1,4 +1,4 @@
-# Deployment contract - engine 0.2.0
+# Deployment contract - engine 0.3.0
 
 ## Integration scope
 
@@ -8,7 +8,7 @@ Use native Intune compliance when a native Microsoft setting directly represents
 
 Use [INTUNE_PILOT_GUIDE.md](INTUNE_PILOT_GUIDE.md) for the exact one-device workflow. No tenant changes are automated.
 
-Build staging first: source-tree direct installer execution is intentionally unsupported. The installer validates manifest/hashes before importing payload code, acquires the shared execution mutex, copies production files to Program Files/ESAF, preserves ProgramData history and invokes the installed module. Engine 0.2.0 expands read-only providers. Corporate-W11 1.1.0 adds seven required and two assessment controls, so both engine and baseline versions change.
+Build staging first: source-tree direct installer execution is intentionally unsupported. The installer validates manifest/hashes before importing payload code, acquires the shared execution mutex, copies production files to Program Files/ESAF, preserves ProgramData history and invokes the installed module. Engine 0.3.0 adds the sanitized support-evidence exporter while retaining the fourteen read-only probes, schema 1.0 and Corporate-W11 1.1.0.
 
 Exit 0 means completed framework execution and publication, including security PASS, REVIEW, FAIL or PENDING. Installation, integrity, lock, runtime and publication errors return 1. Registry publication is the final commit marker. JSON files are individually atomically replaced; there is no two-file transaction. Consumers reject mismatched result/registry state. History retains unique runs.
 
@@ -17,6 +17,8 @@ Detection uses the installed protected ResultContract helper, requires exact ins
 Uninstall coordinates on the same mutex, removes the fixed Program Files/ESAF directory and ESAF summary, and preserves evidence by default. Explicit -Purge removes ProgramData/ESAF too. Remove compliance and Required assignments before rollback. The CMD wrapper resolves native PowerShell without relying on environment expansion in Intune's uninstall field.
 
 SYSTEM installation was proven in Milestone 2, and the 0.2.0 / Corporate-W11 1.1.0 recertification and downstream Intune result were completed successfully in Milestone 3. See [MILESTONE3_LIVE_VALIDATION.md](MILESTONE3_LIVE_VALIDATION.md) and [VALIDATION_REPORT.md](VALIDATION_REPORT.md). No active tests, services, cloud identity or remediation are added. PENDING/REVIEW requires explicit subsequent validation; the future bounded orchestration design remains unimplemented.
+
+Milestone 5 optionally uses Intune Collect Diagnostics as an on-demand retrieval adapter for the sanitized support artifact. After canonical evidence is finalized, ESAF attempts the protected `C:\ProgramData\ESAF\support\latest-assurance.json` export. This filename identifies the last successfully exported support artifact; after a later export failure, its Run ID may precede the most recent completed assessment. It writes equivalent bytes to `C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\ESAF-Assurance.log` only when that Microsoft directory already exists. ESAF does not create IME infrastructure, change its ACLs, restart the service, change tenant configuration or use endpoint Graph credentials. Adapter absence/failure does not change the ESAF verdict or Custom Compliance behavior. See [the transport contract and generic retrieval procedure](MILESTONE5_SUPPORT_EVIDENCE.md).
 
 The pilot currently uses unsigned PowerShell scripts. `-ExecutionPolicy Bypass` applies only to the launched PowerShell process and does not persistently alter endpoint execution policy. ESAF does not call Set-ExecutionPolicy, modify LocalMachine/CurrentUser policy, create execution-policy registry values, or weaken system/GPO policy. Production should prefer signed release scripts and normal organizational script-control policy.
 
@@ -28,4 +30,4 @@ Exact Intune install command:
 
 Uninstall-ESAF.cmd selects native 64-bit Windows PowerShell and invokes `"%ESAF_PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0Uninstall-ESAF.ps1"`.
 
-Update the existing pilot app with the rebuilt 0.2.0 package AND the new Detect-ESAF.ps1 requiring 0.2.0 / 1.1.0. The old 0.1.1 / 1.0.0 installation no longer satisfies detection. Intune runs normal Required deployment once it reevaluates detection; no periodic reinstall is introduced. Upload the current discovery script as well, since it explicitly requires the new certification versions. Preserve one-device assignments and coordinate compliance timing/grace with the owner. Follow [the Milestone 3 live workflow](MILESTONE3_LIVE_VALIDATION.md).
+Update the existing pilot app with the rebuilt 0.3.0 package and staged Detect-ESAF.ps1 requiring 0.3.0 / 1.1.0. A 0.2.0 installation no longer satisfies detection, so the existing Required assignment requests an in-place upgrade and new assessment when Intune reevaluates the device. Upload the staged compliance discovery script because it also requires engine 0.3.0. Preserve the one-device assignment and existing compliance rule, then verify the new Run ID, installed version, canonical evidence and support artifact before requesting Collect Diagnostics. No periodic reinstall is introduced.

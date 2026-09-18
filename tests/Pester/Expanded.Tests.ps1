@@ -237,7 +237,7 @@ Describe 'Milestone 3 upgrade and passive consumers' {
         $null=New-Item -ItemType Directory -Path (Join-Path $old 'src/Utility') -Force
         $null=New-Item -ItemType Directory -Path (Join-Path $old 'baselines') -Force
         Copy-Item (Join-Path $script:root 'src/Utility/ResultContract.ps1') (Join-Path $old 'src/Utility')
-        (Get-Content (Join-Path $script:root 'src/ESAF.psd1') -Raw).Replace('0.2.0','0.1.1') | Set-Content (Join-Path $old 'src/ESAF.psd1')
+        (Get-Content (Join-Path $script:root 'src/ESAF.psd1') -Raw).Replace('0.3.0','0.1.1') | Set-Content (Join-Path $old 'src/ESAF.psd1')
         '' | Set-Content (Join-Path $old 'src/ESAF.psm1')
         (Get-Content (Join-Path $script:root 'baselines/Corporate-W11.json') -Raw).Replace('1.1.0','1.0.0') | Set-Content (Join-Path $old 'baselines/Corporate-W11.json')
         $null=& (Join-Path $script:root 'intune/package/Detect-ESAF.ps1') -InstallPath $old

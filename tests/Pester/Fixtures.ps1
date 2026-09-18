@@ -11,7 +11,7 @@ function New-ESAFTestResult {
             PENDING { $controls[0].observed='Unknown';$summary.pending=1 }
         }
     }
-    [pscustomobject]@{schemaVersion='1.0';device='TEST-DEVICE';runId='ESAF-20260907-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';startedAt=[DateTime]::UtcNow.AddMinutes(-1).ToString('o');completedAt=[DateTime]::UtcNow.ToString('o');provisioning=($Status -eq 'PENDING');status=$Status;engineVersion='0.2.0';baseline=[pscustomobject]@{name='Corporate-W11';version='1.1.0'};summary=$summary;controls=$controls}
+    [pscustomobject]@{schemaVersion='1.0';device='TEST-DEVICE';runId='ESAF-20260907-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';startedAt=[DateTime]::UtcNow.AddMinutes(-1).ToString('o');completedAt=[DateTime]::UtcNow.ToString('o');provisioning=($Status -eq 'PENDING');status=$Status;engineVersion='0.3.0';baseline=[pscustomobject]@{name='Corporate-W11';version='1.1.0'};summary=$summary;controls=$controls}
 }
 function New-ESAFTestRegistry {
     param($Result)

@@ -176,6 +176,7 @@ Describe 'Reporting and full mocked validation' {
             $out=Join-Path $TestDrive 'run'
             $r=Invoke-ESAFValidation -OutputPath $out
             $r.status | Should -Be PASS
+            $r.engineVersion | Should -Be '0.3.0'
             $json=Get-Content (Join-Path $out 'result.json') -Raw | ConvertFrom-Json
             $json.runId | Should -Be $r.runId
             (Get-Content (Join-Path $out 'evidence.json') -Raw | ConvertFrom-Json).runId | Should -Be $r.runId

@@ -2,15 +2,16 @@
 
 ESAF is an Endpoint Security Policy Assurance Framework around native Microsoft security controls. Microsoft Defender and Microsoft Intune remain the native Microsoft management, configuration and reporting planes for applicable endpoint security controls. Microsoft Entra remains the identity and access control plane. ESAF independently observes selected effective Windows and platform state.
 
-ESAF 0.2.0 independently observes effective Windows endpoint state through fourteen read-only local verification probes. It compares those observations with reviewed ESAF verification criteria and retains protected point-in-time evidence and history for post-deployment assurance and configuration mismatch or drift investigation. ESAF does not replace Microsoft management, compliance, health, attestation or reporting, and it is not a permanent agent.
+ESAF 0.3.0 independently observes effective Windows endpoint state through fourteen read-only local verification probes. It compares those observations with reviewed ESAF verification criteria and retains protected point-in-time evidence and history for post-deployment assurance and configuration mismatch or drift investigation. ESAF does not replace Microsoft management, compliance, health, attestation or reporting, and it is not a permanent agent.
 
 | Layer | Purpose | Current support |
 | --- | --- | --- |
-| Approved organizational policy | Defines the security outcome the organization intends | External to ESAF 0.2.0 |
+| Approved organizational policy | Defines the security outcome the organization intends | External to ESAF 0.3.0 |
 | Microsoft control plane | Manages, configures and reports applicable native endpoint security controls | Microsoft Defender and Intune |
 | Effective local state | What Windows and Defender report on the endpoint | Fourteen ESAF verification probes |
 | ESAF comparison criteria | Reviewed local criteria used by schema 1.0 | Corporate-W11 1.1.0 |
 | Protected evidence | Point-in-time results and assessment history | ProgramData history and registry summary |
+| Support evidence | Sanitized latest derivative for authorized troubleshooting | Protected ESAF support copy; optional Intune diagnostics adapter |
 | Downstream integration | Optionally consumes an ESAF result | Intune Custom Compliance pilot POC |
 
 Corporate-W11 1.1.0 remains the schema 1.0 `baseline` runtime concept for compatibility. Forward-looking architecture may describe its role as a verification profile, but this milestone does not rename files, fields or schemas. The Milestone 4 central POC reads one explicit Intune policy setting and reconciles it with one supplied ESAF evidence file; the endpoint runtime still does not ingest authoritative policy intent.
@@ -81,3 +82,5 @@ The owner has now validated engine 0.2.0 / Corporate-W11 1.1.0 through the compl
 ASR PASS means the local inventory was successfully assessed, not that a universal ASR protection baseline was met. Visible exclusions remain individual REVIEW; unknown/error/pending assessment findings remain visible. Optional findings and their summary counts do not downgrade overall certification when required controls are satisfied. Overall Custom Compliance still enforces only ESAFStatus=PASS. Details and source references are in [the expanded control model](docs/CONTROL_MODEL.md).
 
 Milestone 4 adds a central, read-only [Microsoft policy intent reconciliation POC](docs/MILESTONE4_POLICY_INTENT_POC.md). It uses delegated Microsoft Graph read scopes to resolve one explicit Defender Antivirus policy, supported group assignment and AllowRealtimeMonitoring choice, then compares normalized intent with `ESAF-AV-002` from a supplied schema 1.0 `evidence.json`. Its MATCH/MISMATCH/UNKNOWN/ERROR output is a separate reconciliation contract and does not change the endpoint result schema, verdict, package or Intune compliance behavior.
+
+Milestone 5 and engine 0.3.0 add a [sanitized support-evidence export](docs/MILESTONE5_SUPPORT_EVIDENCE.md) after successful canonical publication. Transport contract 0.1 retains only device/run linkage and normalized control fields, links to the exact canonical source bytes with SHA-256, and writes a protected ESAF copy. `latest-assurance.json` means the last successfully exported support artifact; a later completed assessment whose export fails does not delete or replace it. When the existing Intune Management Extension Logs directory is present, ESAF places the same bytes there for optional on-demand Collect Diagnostics retrieval. The hash supports linkage and copy comparison, not authenticity or attestation. ESAF creates no Microsoft infrastructure, endpoint cloud identity, backend or continuous telemetry channel.

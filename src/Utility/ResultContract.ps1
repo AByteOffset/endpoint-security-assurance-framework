@@ -15,7 +15,7 @@ function Get-ESAFCertificationControls {
     [pscustomobject]@{id='ESAF-ASR-001';category='asr';severity='informational';required=$false;expected='Assessed';provider='ASRAssessment';domain=@('Assessed')}
 }
 function Assert-ESAFResultContract {
-    param($Result,[string]$EngineVersion='0.2.0',[string]$BaselineVersion='1.1.0')
+    param($Result,[string]$EngineVersion='0.3.0',[string]$BaselineVersion='1.1.0')
     if ($null -eq $Result -or $Result.schemaVersion -cne '1.0' -or $Result.engineVersion -cne $EngineVersion -or $Result.baseline.name -cne 'Corporate-W11' -or $Result.baseline.version -cne $BaselineVersion -or $Result.runId -cnotmatch '^ESAF-\d{8}-[A-F0-9]{32}$' -or [string]::IsNullOrWhiteSpace($Result.device)) { throw 'Invalid certification identity.' }
     $started=[DateTimeOffset]::Parse($Result.startedAt)
     $completed=[DateTimeOffset]::Parse($Result.completedAt)

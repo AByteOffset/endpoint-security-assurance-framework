@@ -12,11 +12,19 @@ Describe 'Deterministic pilot staging' {
     }
     It 'stages only runtime payload and creates verified SHA256 manifest' {
         $m=Assert-ESAFPackage $script:build.stagingPath
-        $m.engineVersion | Should -Be '0.2.0'
+        $m.engineVersion | Should -Be '0.3.0'
+        (Import-PowerShellDataFile (Join-Path $script:root 'src/ESAF.psd1')).ModuleVersion | Should -Be '0.3.0'
+        $m.schemaVersion | Should -Be '1.0'
         $m.baseline.version | Should -Be '1.1.0'
         $m.files.Count | Should -BeGreaterThan 20
         @($m.files | Where-Object { $_.path -match '\.git|tests/|Test-ESAF.ps1|artifacts|Pester|Test-ESAFSecurity' }).Count | Should -Be 0
         $script:build.intunewinPath | Should -BeNullOrEmpty
+    }
+    It 'derives package version from the authoritative module manifest' {
+        $body=Get-Content (Join-Path $script:root 'packaging/Build-ESAFPackage.ps1') -Raw
+        $body | Should -Match 'Test-ModuleManifest'
+        $body | Should -Match 'engineVersion=\$engineVersion'
+        $body | Should -Not -Match "engineVersion='0\.3\.0'"
     }
     It 'rebuilds with identical paths and content hashes and removes old staged output' {
         $first=Assert-ESAFPackage $script:build.stagingPath
@@ -28,6 +36,14 @@ Describe 'Deterministic pilot staging' {
     }
     It 'rejects payload tampering before module import' {
         Add-Content (Join-Path $script:build.stagingPath 'payload/src/ESAF.psm1') '#tamper'
+        { Assert-ESAFPackage $script:build.stagingPath } | Should -Throw
+    }
+    It 'accepts the current package version and rejects incompatible package metadata' {
+        { Assert-ESAFPackage $script:build.stagingPath } | Should -Not -Throw
+        $path=Join-Path $script:build.stagingPath 'package-manifest.json'
+        $manifest=Get-Content $path -Raw | ConvertFrom-Json
+        $manifest.engineVersion='0.2.0'
+        $manifest | ConvertTo-Json -Depth 8 | Set-Content $path
         { Assert-ESAFPackage $script:build.stagingPath } | Should -Throw
     }
     It 'cleans incomplete staging after a copy failure so rebuilding is safe' {
@@ -121,11 +137,11 @@ Describe 'Pilot result contract and read-only adapters' {
         Mock Get-Acl { throw 'no permission' }
         (& (Join-Path $script:root 'intune/compliance/Compliance-Discovery.ps1') -InstallPath $script:root -ResultPath $script:path | ConvertFrom-Json).ESAFStatus | Should -Be PENDING
     }
-    It 'detects PASS and rejects a 0.1.0 certificate with installed 0.2.0' {
+    It 'detects current 0.3.0 and rejects a previous 0.2.0 certificate' {
         $global:ESAFTestFixture | ConvertTo-Json -Depth 10 | Set-Content $script:path
         $null=& (Join-Path $script:root 'intune/package/Detect-ESAF.ps1') -InstallPath $script:root -ResultPath $script:path
         $LASTEXITCODE | Should -Be 0
-        $global:ESAFTestFixture.engineVersion='0.1.0'
+        $global:ESAFTestFixture.engineVersion='0.2.0'
         $global:ESAFTestFixture | ConvertTo-Json -Depth 10 | Set-Content $script:path
         $null=& (Join-Path $script:root 'intune/package/Detect-ESAF.ps1') -InstallPath $script:root -ResultPath $script:path
         $LASTEXITCODE | Should -Be 1
@@ -137,12 +153,17 @@ Describe 'Pilot result contract and read-only adapters' {
         Mock New-ItemProperty { throw 'write forbidden' }
         Mock Set-Acl { throw 'write forbidden' }
         $r=& (Join-Path $script:root 'tools/Test-ESAFInstallation.ps1') -InstallPath $script:root -ResultPath $script:path
+        $r.Engine | Should -Be PASS
         $r.ResultIntegrity | Should -Be PASS
         $r.RegistryConsistency | Should -Be PASS
         (Get-FileHash $script:path).Hash | Should -Be $before
         Should -Invoke Set-Content -Times 0
         Should -Invoke New-ItemProperty -Times 0
         Should -Invoke Set-Acl -Times 0
+    }
+    It 'retains historical Milestone 3 validation versions' {
+        (Get-Content (Join-Path $script:root 'docs/MILESTONE3_LIVE_VALIDATION.md') -Raw) | Should -Match 'engine 0\.1\.1.+engine 0\.2\.0'
+        (Get-Content (Join-Path $script:root 'docs/VALIDATION_REPORT.md') -Raw) | Should -Match 'upgraded from 0\.1\.1 to 0\.2\.0'
     }
     It 'pilot rules require only overall PASS' {
         $rules=Get-Content (Join-Path $script:root 'intune/compliance/Compliance-Rules.json') -Raw | ConvertFrom-Json
